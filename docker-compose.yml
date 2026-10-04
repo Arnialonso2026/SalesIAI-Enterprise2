@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: salesia
+      POSTGRES_USER: salesia
+      POSTGRES_PASSWORD: salesia
+    ports:
+      - "5432:5432"
+    volumes:
+      - salesia-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U salesia -d salesia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    environment:
+      APP_ENV: development
+      SECRET_KEY: local-dev-change-this-secret-key
+      DATABASE_URL: postgresql+psycopg://salesia:salesia@db:5432/salesia
+      CORS_ORIGINS: http://localhost:5173
+      COMPANY_NAME: Matrixflow Demo
+      TAX_RATE: 0.18
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      VITE_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  salesia-postgres:
