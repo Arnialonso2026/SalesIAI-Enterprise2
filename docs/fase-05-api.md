@@ -7,7 +7,7 @@ Las respuestas de listado son arreglos JSON. Los errores de validación/negocio 
 | Método | Ruta | Auth | Propósito |
 |---|---|---|---|
 | GET | `/health` | No | Comprobar disponibilidad |
-| POST | `/api/v1/auth/login` | No | Validar correo/clave y recibir JWT |
+| POST | `/api/v1/auth/login` | No | Validar DNI/contraseña y recibir JWT |
 | GET | `/api/v1/auth/me` | Sí | Obtener perfil del usuario actual |
 | GET / POST | `/api/v1/customers` | Sí | Buscar/listar y crear clientes |
 | PUT | `/api/v1/customers/{id}` | Sí | Actualizar ficha del cliente |
@@ -20,6 +20,9 @@ Las respuestas de listado son arreglos JSON. Los errores de validación/negocio 
 | GET | `/api/v1/inventory/movements` | Sí | Consultar los últimos movimientos |
 | POST | `/api/v1/inventory/products/{id}/adjust` | Sí | Ajustar stock con cantidad con signo y motivo |
 | GET | `/api/v1/dashboard/summary` | Sí | KPIs operativos, últimos días y ventas recientes |
+| GET / POST | `/api/v1/users` | Admin | Listar usuarios de la empresa y crear cuentas con DNI, contraseña y rol |
+| PUT / DELETE | `/api/v1/users/{id}` | Admin | Editar usuario o retirar acceso conservando ventas históricas |
+| POST | `/api/v1/users/{id}/clear-password` | Admin | Quitar contraseña y desactivar la cuenta |
 
 ## Ejemplo de venta
 
@@ -29,4 +32,4 @@ Métodos de pago admitidos por interfaz demo: efectivo (`cash`), tarjeta (`card`
 
 ## Seguridad de esta fase
 
-JWT firmado con HS256, contraseñas Argon2, token requerido en rutas privadas, filtros por empresa y restricciones iniciales para escritura por rol (vendedor para ventas/clientes; almacén para catálogo/inventario; administrador con acceso completo). Para producción, definir una clave secreta única, HTTPS, expiración/rotación, rate limiting, protección CSRF si se usan cookies y permisos granulares/auditables por rol (fase 13).
+El login principal valida DNI+Argon2 y emite un JWT HS256 con expiración. En rutas protegidas se aceptan tanto ese token interno como JWT Supabase verificados mediante JWKS, emisor y audiencia. Administración de usuarios es exclusiva de `admin`; escritura de venta/cliente de `seller`; escritura de catálogo e inventario de `warehouse`; `manager` y `analyst` mantienen acceso de consulta. Cambiar o eliminar credenciales desactiva el acceso si falta DNI o contraseña.

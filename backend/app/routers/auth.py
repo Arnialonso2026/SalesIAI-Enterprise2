@@ -13,9 +13,14 @@ router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 @router.post("/login", response_model=TokenOut)
 def login(payload: LoginIn, db: Session = Depends(get_db)) -> TokenOut:
-    user = db.scalar(select(User).where(User.email == payload.email.lower()))
-    if user is None or not user.is_active or not verify_password(payload.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Correo o contraseña incorrectos.")
+    user = db.scalar(select(User).where(User.dni == payload.dni))
+    if (
+        user is None
+        or not user.is_active
+        or not user.password_hash
+        or not verify_password(payload.password, user.password_hash)
+    ):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="DNI o contraseña incorrectos.")
     return TokenOut(access_token=create_access_token(str(user.id)), user=UserOut.model_validate(user))
 
 

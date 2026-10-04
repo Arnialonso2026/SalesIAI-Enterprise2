@@ -16,7 +16,8 @@ Aplicación SPA React + TypeScript sobre Vite, rutas con React Router, cliente H
 | `/ventas` | Historial | Filtro por número, cliente, pago e importe |
 | `/ventas/nueva` | Punto de venta | Carrito, cliente, descuento, IGV, pago y confirmación |
 | `/inventario` | Control de existencias | Niveles, ajuste con motivo e historial de movimientos |
+| `/usuarios` | Administración (solo admin) | Crear, editar, desactivar y retirar credenciales; asignar DNI, contraseña y rol |
 
 ## Estados y componentes
 
-Las pantallas cubren carga, error y contenido vacío. Formularios usan estados controlados y validación HTML, mientras que el backend repite todas las comprobaciones relevantes. El diseño se adapta a escritorio, tableta y móvil; la navegación lateral se transforma en navegación inferior en móvil.
+Las pantallas cubren carga, error y contenido vacío. Formularios usan estados controlados y validación HTML, mientras que el backend repite todas las comprobaciones relevantes. La navegación y acciones de escritura reflejan los roles del plan; la API impone la autorización definitiva. El diseño se adapta a escritorio, tableta y móvil; la navegación lateral se transforma en navegación inferior en móvil.

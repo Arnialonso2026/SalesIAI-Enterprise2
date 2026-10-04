@@ -1,7 +1,17 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+UserRole = Literal["admin", "manager", "seller", "analyst", "warehouse"]
+
+
+def validate_dni(value: str) -> str:
+    normalized = value.strip()
+    if len(normalized) != 8 or not normalized.isdigit():
+        raise ValueError("El DNI debe contener exactamente 8 dígitos.")
+    return normalized
 
 
 class ORMModel(BaseModel):
@@ -17,14 +27,49 @@ class TokenOut(BaseModel):
 class UserOut(ORMModel):
     id: int
     full_name: str
-    email: EmailStr
+    email: EmailStr | None
+    dni: str | None
     role: str
     company_id: int
+    is_active: bool
+    password_configured: bool
 
 
 class LoginIn(BaseModel):
-    email: EmailStr
+    dni: str = Field(min_length=8, max_length=8)
     password: str = Field(min_length=1, max_length=128)
+
+    @field_validator("dni")
+    @classmethod
+    def normalize_dni(cls, value: str) -> str:
+        return validate_dni(value)
+
+
+class UserCreate(BaseModel):
+    full_name: str = Field(min_length=2, max_length=160)
+    email: EmailStr | None = None
+    dni: str
+    password: str = Field(min_length=8, max_length=128)
+    role: UserRole
+
+    @field_validator("dni")
+    @classmethod
+    def normalize_dni(cls, value: str) -> str:
+        return validate_dni(value)
+
+
+class UserUpdate(BaseModel):
+    full_name: str = Field(min_length=2, max_length=160)
+    email: EmailStr | None = None
+    dni: str | None = None
+    password: str | None = Field(default=None, min_length=8, max_length=128)
+    role: UserRole
+    is_active: bool
+
+    @field_validator("dni")
+    @classmethod
+    def normalize_dni(cls, value: str | None) -> str | None:
+        return validate_dni(value) if value is not None else None
 
 
 class CustomerIn(BaseModel):

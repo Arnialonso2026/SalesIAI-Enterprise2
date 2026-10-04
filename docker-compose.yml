@@ -20,8 +20,11 @@ services:
     environment:
       APP_ENV: development
       SECRET_KEY: local-dev-change-this-secret-key
-      DATABASE_URL: postgresql+psycopg://salesia:salesia@db:5432/salesia
-      CORS_ORIGINS: http://localhost:5173
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://salesia:salesia@db:5432/salesia}
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      SUPABASE_URL: ${SUPABASE_URL:-https://lbcigehvvzdmmmirfdup.supabase.co}
+      SUPABASE_JWKS_URL: ${SUPABASE_JWKS_URL:-https://lbcigehvvzdmmmirfdup.supabase.co/auth/v1/.well-known/jwks.json}
+      SUPABASE_JWT_AUDIENCE: authenticated
       COMPANY_NAME: Matrixflow Demo
       TAX_RATE: 0.18
     ports:

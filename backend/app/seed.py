@@ -16,11 +16,18 @@ def seed_demo_data() -> None:
             db.add(company)
             db.flush()
 
-        if db.scalar(select(User).where(User.email == "admin@salesia.example.com")) is None:
+        admin = db.scalar(select(User).where(User.email == "admin@salesia.example.com"))
+        if admin is None:
             db.add(User(
                 company_id=company.id, full_name="Administradora SalesIA",
-                email="admin@salesia.example.com", password_hash=hash_password("SalesIA2026!"), role="admin",
+                email="admin@salesia.example.com", dni="00000001",
+                password_hash=hash_password("SalesIA2026!"), role="admin",
             ))
+        else:
+            if admin.dni is None:
+                admin.dni = "00000001"
+            if admin.password_hash is None:
+                admin.password_hash = hash_password("SalesIA2026!")
 
         categories = {
             "Tecnología": "Equipos y accesorios tecnológicos",

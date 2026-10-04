@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react'
-import { ArrowRight, BarChart3, Check, LockKeyhole, Mail } from 'lucide-react'
+import { ArrowRight, BarChart3, Check, LockKeyhole, ScanFace } from 'lucide-react'
 import { api, errorMessage } from '../api'
 import { useAuth } from '../App'
 import type { User } from '../types'
@@ -8,8 +8,8 @@ interface LoginResponse { access_token: string; token_type: string; user: User }
 
 export default function LoginPage() {
   const { signIn } = useAuth()
-  const [email, setEmail] = useState('admin@salesia.example.com')
-  const [password, setPassword] = useState('SalesIA2026!')
+  const [dni, setDni] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -18,7 +18,7 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     try {
-      const { data } = await api.post<LoginResponse>('/auth/login', { email, password })
+      const { data } = await api.post<LoginResponse>('/auth/login', { dni, password })
       signIn(data.access_token, data.user)
     } catch (cause) {
       setError(errorMessage(cause))
@@ -35,14 +35,14 @@ export default function LoginPage() {
         <div className="story-foot"><span>SALESIA ENTERPRISE</span><span>PLATAFORMA DE GESTIÓN COMERCIAL</span></div>
         <div className="story-orb orb-one" /><div className="story-orb orb-two" />
       </section>
-      <section className="login-panel"><div className="login-form-wrap"><div className="login-welcome"><div className="login-mobile-brand"><div className="brand-mark"><BarChart3 size={22} /></div><strong>salesia<span>.</span></strong></div><span className="eyebrow">BIENVENIDO DE NUEVO</span><h2>Inicia sesión</h2><p>Ingresa tus credenciales para continuar a tu espacio de trabajo.</p></div>
+      <section className="login-panel"><div className="login-form-wrap"><div className="login-welcome"><div className="login-mobile-brand"><div className="brand-mark"><BarChart3 size={22} /></div><strong>salesia<span>.</span></strong></div><span className="eyebrow">BIENVENIDO DE NUEVO</span><h2>Inicia sesión</h2><p>Ingresa tu DNI y contraseña asignados por el administrador.</p></div>
         <form className="login-form" onSubmit={submit}>
-          <label htmlFor="email">Correo electrónico</label><div className="input-with-icon"><Mail size={17} /><input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required /></div>
+          <label htmlFor="dni">DNI</label><div className="input-with-icon"><ScanFace size={17} /><input id="dni" type="text" inputMode="numeric" pattern="[0-9]{8}" maxLength={8} value={dni} onChange={(event) => setDni(event.target.value.replace(/\D/g, '').slice(0, 8))} autoComplete="username" placeholder="8 dígitos" required /></div>
           <div className="password-label"><label htmlFor="password">Contraseña</label><span>Acceso seguro</span></div><div className="input-with-icon"><LockKeyhole size={17} /><input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></div>
           {error && <div className="login-error">{error}</div>}
           <button className="button button-primary login-submit" disabled={loading}>{loading ? 'Ingresando…' : <>Entrar a mi espacio <ArrowRight size={17} /></>}</button>
         </form>
-        <div className="login-demo"><span className="demo-light" /><div><strong>Entorno de demostración</strong><small>Acceso inicial: admin@salesia.example.com</small></div></div>
+        <div className="login-demo"><span className="demo-light" /><div><strong>Acceso con credenciales de usuario</strong><small>Solicita tu DNI y contraseña al administrador.</small></div></div>
         <div className="login-copyright">© 2026 SalesIA Enterprise <span>•</span> Proyecto académico SENATI</div>
       </div></section>
     </div>

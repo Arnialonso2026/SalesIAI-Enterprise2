@@ -4,10 +4,13 @@ import { Link } from 'react-router-dom'
 import { api, errorMessage } from '../api'
 import { EmptyState, ErrorMessage, Loading } from '../components/Feedback'
 import PageHeader from '../components/PageHeader'
+import { useAuth } from '../App'
 import type { Sale } from '../types'
 import { currency, dateTime } from '../utils'
 
 export default function SalesPage() {
+  const { user } = useAuth()
+  const canCreateSale = user?.role === 'admin' || user?.role === 'seller'
   const [sales, setSales] = useState<Sale[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -22,7 +25,7 @@ export default function SalesPage() {
   const total = sales.reduce((sum, sale) => sum + sale.total, 0)
 
   return <>
-    <PageHeader eyebrow="OPERACIÓN COMERCIAL" title="Ventas" description="Consulta el historial de ventas y da seguimiento a cada operación registrada." action={<Link className="button button-primary" to="/ventas/nueva"><Plus size={17} /> Nueva venta</Link>} />
+    <PageHeader eyebrow="OPERACIÓN COMERCIAL" title="Ventas" description="Consulta el historial de ventas y da seguimiento a cada operación registrada." action={canCreateSale && <Link className="button button-primary" to="/ventas/nueva"><Plus size={17} /> Nueva venta</Link>} />
     {error && <ErrorMessage message={error} />}
     <div className="sales-summary-row"><div className="sales-summary-card"><span className="summary-icon"><ShoppingBag size={18} /></span><div><small>Operaciones en pantalla</small><strong>{sales.length}</strong></div></div><div className="sales-summary-card"><span className="summary-icon summary-icon-green"><CircleDollarSign size={18} /></span><div><small>Importe del historial</small><strong>{currency(total)}</strong></div></div><div className="sales-summary-note"><ArrowUpRight size={16} /><span>Las ventas descuentan stock y dejan un registro de inventario.</span></div></div>
     <section className="panel table-panel"><div className="table-toolbar"><div className="table-heading"><div className="table-icon sales-icon"><ShoppingBag size={18} /></div><div><strong>Historial de ventas</strong><span>Ventas, pagos y detalle de cada operación</span></div></div><label className="search-field"><Search size={16} /><input value={search} onChange={(event) => { setSearch(event.target.value); void load(event.target.value) }} placeholder="Buscar N.º de venta…" /></label></div>

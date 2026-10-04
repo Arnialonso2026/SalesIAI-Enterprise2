@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 480
     database_url: str = "postgresql+psycopg://salesia:salesia@localhost:5432/salesia"
     cors_origins: str = "http://localhost:5173"
+    supabase_url: str = ""
+    supabase_jwks_url: str = ""
+    supabase_jwt_audience: str = "authenticated"
     company_name: str = "Matrixflow Demo"
     tax_rate: float = 0.18
 
@@ -19,6 +22,10 @@ class Settings(BaseSettings):
     @property
     def allowed_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def supabase_enabled(self) -> bool:
+        return bool(self.supabase_url.strip() and self.supabase_jwks_url.strip())
 
 
 @lru_cache

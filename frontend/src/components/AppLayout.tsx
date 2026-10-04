@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { BarChart3, Box, CircleDollarSign, ClipboardList, LayoutDashboard, LogOut, PackageSearch, Tags, Users } from 'lucide-react'
+import { BarChart3, Box, CircleDollarSign, ClipboardList, LayoutDashboard, LogOut, PackageSearch, Tags, UserRoundCog, Users } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useAuth } from '../App'
 
@@ -8,13 +8,14 @@ const navigation = [
   { label: 'Ventas', path: '/ventas', icon: CircleDollarSign },
   { label: 'Clientes', path: '/clientes', icon: Users },
   { label: 'Productos', path: '/productos', icon: Box },
-  { label: 'Categorías', path: '/categorias', icon: Tags },
+  { label: 'Categorías', path: '/categorias', icon: Tags, allowedRoles: ['admin', 'warehouse'] },
   { label: 'Inventario', path: '/inventario', icon: PackageSearch },
+  { label: 'Usuarios', path: '/usuarios', icon: UserRoundCog, adminOnly: true },
 ]
 
 const titles: Record<string, string> = {
   '/': 'Resumen ejecutivo', '/ventas': 'Ventas', '/ventas/nueva': 'Nueva venta', '/categorias': 'Categorías',
-  '/clientes': 'Clientes', '/productos': 'Productos', '/inventario': 'Inventario',
+  '/clientes': 'Clientes', '/productos': 'Productos', '/inventario': 'Inventario', '/usuarios': 'Usuarios',
 }
 const roleLabels: Record<string, string> = {
   admin: 'Administrador', seller: 'Vendedor', manager: 'Gerencia', warehouse: 'Almacén', analyst: 'Analista',
@@ -23,6 +24,9 @@ const roleLabels: Record<string, string> = {
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth()
   const { pathname } = useLocation()
+  const visibleNavigation = navigation.filter((item) =>
+    (!item.adminOnly || user?.role === 'admin') && (!item.allowedRoles || item.allowedRoles.includes(user?.role ?? '')),
+  )
   const initials = user?.full_name.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase() ?? 'SA'
 
   return (
@@ -36,7 +40,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div className="workspace-card"><div className="workspace-avatar">M</div><div><strong>Matrixflow Demo</strong><small>Plan empresarial</small></div><span className="workspace-dot" /></div>
         <div className="nav-caption">MENÚ PRINCIPAL</div>
         <nav className="sidebar-nav">
-          {navigation.map(({ label, path, icon: Icon }) => (
+          {visibleNavigation.map(({ label, path, icon: Icon }) => (
             <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               <Icon size={18} strokeWidth={1.9} /><span>{label}</span>
               {label === 'Inventario' && <span className="nav-tag">STOCK</span>}

@@ -1,9 +1,12 @@
 export interface User {
   id: number
   full_name: string
-  email: string
+  email: string | null
+  dni: string | null
   role: string
   company_id: number
+  is_active: boolean
+  password_configured: boolean
 }
 
 export interface Customer {

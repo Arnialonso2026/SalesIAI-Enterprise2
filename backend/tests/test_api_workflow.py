@@ -1,12 +1,3 @@
-import os
-import tempfile
-from pathlib import Path
-
-# La aplicación se configura al importarse; las pruebas usan su propia base SQLite.
-test_db_path = Path(tempfile.gettempdir()) / f"salesia-tests-{os.getpid()}.sqlite3"
-os.environ["DATABASE_URL"] = f"sqlite:///{test_db_path.as_posix()}"
-os.environ["SECRET_KEY"] = "test-only-secret-key"
-
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.database import Base, engine, SessionLocal  # noqa: E402
@@ -16,9 +7,11 @@ from app.models import User  # noqa: E402
 
 def test_authenticated_sale_updates_inventory_and_is_atomic() -> None:
     Base.metadata.drop_all(bind=engine)
+    with engine.begin() as connection:
+        connection.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
     with TestClient(app) as client:
         login = client.post("/api/v1/auth/login", json={
-            "email": "admin@salesia.example.com", "password": "SalesIA2026!",
+            "dni": "00000001", "password": "SalesIA2026!",
         })
         assert login.status_code == 200, login.text
         token = login.json()["access_token"]
@@ -80,7 +73,7 @@ def test_authenticated_sale_updates_inventory_and_is_atomic() -> None:
             admin.role = "analyst"
             db.commit()
         analyst_login = client.post("/api/v1/auth/login", json={
-            "email": "admin@salesia.example.com", "password": "SalesIA2026!",
+            "dni": "00000001", "password": "SalesIA2026!",
         })
         analyst_headers = {"Authorization": f"Bearer {analyst_login.json()['access_token']}"}
         forbidden = client.post("/api/v1/categories", headers=analyst_headers, json={
@@ -89,5 +82,6 @@ def test_authenticated_sale_updates_inventory_and_is_atomic() -> None:
         assert forbidden.status_code == 403
 
     Base.metadata.drop_all(bind=engine)
+    with engine.begin() as connection:
+        connection.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
     engine.dispose()
-    test_db_path.unlink(missing_ok=True)

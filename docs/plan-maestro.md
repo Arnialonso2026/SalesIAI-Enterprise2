@@ -18,7 +18,7 @@ Construir una plataforma empresarial donde las operaciones comerciales generan d
 | 10 | Dashboard Analytics | KPIs, gráficos, filtros y evolución | Pendiente |
 | 11 | Insights empresariales | Reglas explicables y evidencia numérica | Pendiente |
 | 12 | Reportes | Reportes comerciales/estadísticos y exportación | Pendiente |
-| 13 | Seguridad y auditoría | Roles granulares, permisos y auditoría avanzada | Pendiente |
+| 13 | Seguridad y auditoría | Roles granulares, permisos y auditoría avanzada | Parcial: roles y permisos implementados; auditoría avanzada pendiente |
 | 14 | Pruebas y calidad | Pruebas de integración, API, UI y aceptación | Pendiente |
 | 15 | Despliegue | Ambientes, HTTPS, monitoreo y publicación | Pendiente |
 | 16 | Cierre y documentación | Manuales, evidencias y mantenimiento | Pendiente |

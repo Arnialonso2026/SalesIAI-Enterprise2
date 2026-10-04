@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import auth, catalog, dashboard, sales
+from app.routers import auth, catalog, dashboard, sales, users
 from app.seed import seed_demo_data
 
 
@@ -39,6 +39,7 @@ app.include_router(auth.router, prefix=settings.api_v1_prefix)
 app.include_router(catalog.router, prefix=settings.api_v1_prefix)
 app.include_router(sales.router, prefix=settings.api_v1_prefix)
 app.include_router(dashboard.router, prefix=settings.api_v1_prefix)
+app.include_router(users.router, prefix=settings.api_v1_prefix)
 
 
 @app.get("/health", tags=["Estado"])
