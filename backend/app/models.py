@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -135,3 +135,138 @@ class InventoryMovement(Base):
     stock_after: Mapped[int] = mapped_column(Integer, nullable=False)
     note: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+
+
+class AnalyticsDataset(Base):
+    __tablename__ = "analytics_datasets"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class DatasetVariable(Base):
+    __tablename__ = "dataset_variables"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    dataset_id: Mapped[int] = mapped_column(ForeignKey("analytics_datasets.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    data_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    variable_role: Mapped[str] = mapped_column(String(30), nullable=False)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    configuration: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+
+
+class DatasetObservation(Base):
+    __tablename__ = "dataset_observations"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    dataset_id: Mapped[int] = mapped_column(ForeignKey("analytics_datasets.id", ondelete="CASCADE"), index=True)
+    external_key: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    observation_data: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class StatisticalAnalysis(Base):
+    __tablename__ = "statistical_analyses"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True)
+    dataset_id: Mapped[int] = mapped_column(ForeignKey("analytics_datasets.id"), index=True)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    analysis_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), default="pending", nullable=False)
+    parameters: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class AnalysisVariable(Base):
+    __tablename__ = "analysis_variables"
+    __table_args__ = (UniqueConstraint("analysis_id", "variable_id", "analysis_role"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    analysis_id: Mapped[int] = mapped_column(ForeignKey("statistical_analyses.id", ondelete="CASCADE"), index=True)
+    variable_id: Mapped[int] = mapped_column(ForeignKey("dataset_variables.id"), index=True)
+    analysis_role: Mapped[str] = mapped_column(String(30), default="input", nullable=False)
+
+
+class StatisticalResult(Base):
+    __tablename__ = "statistical_results"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    analysis_id: Mapped[int] = mapped_column(ForeignKey("statistical_analyses.id", ondelete="CASCADE"), index=True)
+    variable_id: Mapped[int | None] = mapped_column(ForeignKey("dataset_variables.id"), index=True)
+    metric: Mapped[str] = mapped_column(String(80), nullable=False)
+    result: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class BayesianAnalysis(Base):
+    __tablename__ = "bayesian_analyses"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(24), default="pending", nullable=False)
+    parameters: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class BayesianEvidence(Base):
+    __tablename__ = "bayesian_evidence"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    analysis_id: Mapped[int] = mapped_column(ForeignKey("bayesian_analyses.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    evidence_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    observed_value: Mapped[dict] = mapped_column(JSON, nullable=False)
+    likelihood: Mapped[Decimal | None] = mapped_column(Numeric(12, 8), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class BayesianResult(Base):
+    __tablename__ = "bayesian_results"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    analysis_id: Mapped[int] = mapped_column(ForeignKey("bayesian_analyses.id", ondelete="CASCADE"), index=True)
+    hypothesis: Mapped[str] = mapped_column(Text, nullable=False)
+    prior_probability: Mapped[Decimal] = mapped_column(Numeric(12, 8), nullable=False)
+    posterior_probability: Mapped[Decimal] = mapped_column(Numeric(12, 8), nullable=False)
+    calculation: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class Insight(Base):
+    __tablename__ = "insights"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True)
+    analysis_id: Mapped[int | None] = mapped_column(ForeignKey("statistical_analyses.id"), index=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    severity: Mapped[str] = mapped_column(String(24), default="info", nullable=False)
+    status: Mapped[str] = mapped_column(String(24), default="new", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class InsightEvidence(Base):
+    __tablename__ = "insight_evidence"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    insight_id: Mapped[int] = mapped_column(ForeignKey("insights.id", ondelete="CASCADE"), index=True)
+    result_id: Mapped[int | None] = mapped_column(ForeignKey("statistical_results.id"), index=True)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class Report(Base):
+    __tablename__ = "reports"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    report_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), default="pending", nullable=False)
+    parameters: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    output_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    generated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

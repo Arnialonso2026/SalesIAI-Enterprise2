@@ -6,6 +6,7 @@ import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
 import { useAuth } from '../App'
 import type { User } from '../types'
+import { useRealtimeRefresh } from '../useRealtimeRefresh'
 
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Administrador' },
@@ -41,6 +42,7 @@ export default function UsersPage() {
   }
 
   useEffect(() => { void loadUsers() }, [])
+  useRealtimeRefresh(loadUsers)
 
   function openCreate() {
     setEditing(null)

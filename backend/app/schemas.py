@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
+from math import isfinite
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
@@ -192,3 +193,70 @@ class InventoryMovementOut(ORMModel):
     stock_after: int
     note: str | None
     created_at: datetime
+
+
+class StatisticalAnalysisIn(BaseModel):
+    name: str = Field(min_length=2, max_length=160)
+    variable_name: str = Field(default="value", min_length=1, max_length=100)
+    values: list[float] = Field(min_length=1, max_length=10000)
+    threshold: float | None = None
+
+    @field_validator("values")
+    @classmethod
+    def values_must_be_finite(cls, values: list[float]) -> list[float]:
+        if any(not isfinite(value) for value in values):
+            raise ValueError("Todos los valores deben ser números finitos.")
+        return values
+
+
+class BayesianAnalysisIn(BaseModel):
+    name: str = Field(min_length=2, max_length=160)
+    question: str = Field(min_length=5, max_length=1000)
+    prior_probability: float = Field(ge=0, le=1)
+    likelihood_if_true: float = Field(ge=0, le=1)
+    likelihood_if_false: float = Field(ge=0, le=1)
+
+
+class AnalyticsDashboardOut(BaseModel):
+    start_date: date
+    end_date: date
+    revenue: float
+    previous_revenue: float
+    revenue_change_percent: float | None
+    sales_count: int
+    average_ticket: float
+    active_customers: int
+    low_stock_products: int
+    daily_sales: list[dict[str, str | float]]
+    top_products: list[dict[str, str | int | float]]
+    payment_methods: list[dict[str, str | float]]
+
+
+class InsightStatusIn(BaseModel):
+    status: Literal["new", "read", "dismissed"]
+
+
+class InsightOut(ORMModel):
+    id: int
+    title: str
+    description: str
+    severity: str
+    status: str
+    created_at: datetime
+    evidence: list[dict[str, object]] = Field(default_factory=list)
+
+
+class ReportExportIn(BaseModel):
+    start_date: date | None = None
+    end_date: date | None = None
+    format: Literal["csv", "json"] = "csv"
+
+
+class ReportOut(ORMModel):
+    id: int
+    name: str
+    report_type: str
+    status: str
+    parameters: dict[str, object]
+    created_at: datetime
+    generated_at: datetime | None

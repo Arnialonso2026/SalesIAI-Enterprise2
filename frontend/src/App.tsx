@@ -3,6 +3,7 @@ import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { api } from './api'
 import type { User } from './types'
 import AppLayout from './components/AppLayout'
+import { REALTIME_CHANGE_EVENT } from './useRealtimeRefresh'
 
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
@@ -13,6 +14,7 @@ const SalesPage = lazy(() => import('./pages/SalesPage'))
 const NewSalePage = lazy(() => import('./pages/NewSalePage'))
 const InventoryPage = lazy(() => import('./pages/InventoryPage'))
 const UsersPage = lazy(() => import('./pages/UsersPage'))
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
 
 interface AuthContextValue {
   user: User | null
@@ -73,6 +75,72 @@ export default function App() {
     return () => { active = false }
   }, [])
 
+  useEffect(() => {
+    if (authLoading || !user) return
+    const token = localStorage.getItem('salesia_token')
+    if (!token) return
+
+    let active = true
+    let retryDelay = 1000
+    let retryTimer = 0
+    let hasConnected = false
+    let socket: WebSocket | null = null
+
+    const connect = () => {
+      const socketUrl = new URL(import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1', window.location.origin)
+      socketUrl.protocol = socketUrl.protocol === 'https:' ? 'wss:' : 'ws:'
+      socketUrl.pathname = `${socketUrl.pathname.replace(/\/$/, '')}/realtime/ws`
+      socket = new WebSocket(socketUrl, ['salesia', `bearer.${token}`])
+      socket.onopen = () => {
+        retryDelay = 1000
+        if (hasConnected) {
+          window.dispatchEvent(new CustomEvent(REALTIME_CHANGE_EVENT, { detail: { type: 'resync' } }))
+        }
+        hasConnected = true
+      }
+      socket.onmessage = ({ data }) => {
+        try {
+          const event = JSON.parse(data) as { resource?: string }
+          if (event.resource === 'users') {
+            void api.get<User>('/auth/me')
+              .then(({ data: currentUser }) => {
+                localStorage.setItem('salesia_user', JSON.stringify(currentUser))
+                setUser(currentUser)
+              })
+              .catch(() => {
+                localStorage.removeItem('salesia_token')
+                localStorage.removeItem('salesia_user')
+                setUser(null)
+              })
+          }
+          window.dispatchEvent(new CustomEvent(REALTIME_CHANGE_EVENT, { detail: event }))
+        } catch {
+          return
+        }
+      }
+      socket.onerror = () => socket?.close()
+      socket.onclose = (event) => {
+        if (!active) return
+        if (event.code === 4401) {
+          localStorage.removeItem('salesia_token')
+          localStorage.removeItem('salesia_user')
+          setUser(null)
+          return
+        }
+        if (event.code === 4403) return
+        retryTimer = window.setTimeout(connect, retryDelay)
+        retryDelay = Math.min(retryDelay * 2, 30000)
+      }
+    }
+
+    connect()
+    return () => {
+      active = false
+      window.clearTimeout(retryTimer)
+      socket?.close()
+    }
+  }, [authLoading, user?.id])
+
   const auth = useMemo<AuthContextValue>(() => ({
     user,
     authLoading,
@@ -99,6 +167,9 @@ export default function App() {
             <Route path="/productos" element={<ProductsPage />} />
             <Route path="/ventas" element={<SalesPage />} />
             <Route path="/inventario" element={<InventoryPage />} />
+          </Route>
+          <Route element={<RoleLayout allowed={['admin', 'manager', 'analyst']} />}>
+            <Route path="/analitica" element={<AnalyticsPage />} />
           </Route>
           <Route element={<RoleLayout allowed={['admin', 'seller']} />}>
             <Route path="/ventas/nueva" element={<NewSalePage />} />

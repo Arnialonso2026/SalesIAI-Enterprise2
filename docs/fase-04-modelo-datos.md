@@ -43,4 +43,4 @@ SQLAlchemy genera claves foráneas e índices para búsquedas habituales por emp
 
 `backend/migrations/versions/20261003_0001_initial.py` es la migración inicial Alembic; `20261003_0002_supabase_identity.py` agrega el subject opcional de Supabase; `20261003_0003_dni_credentials.py` agrega DNI único y permite credenciales/correo opcionales. `backend/app/seed.py` mantiene al usuario demo con DNI `00000001`, categorías, productos y clientes de ejemplo sin duplicarlos al reiniciar.
 
-El modelo de datasets, variables estadísticas, observaciones, resultados, análisis Bayes, insights y reportes se añadirá cuando se implemente la fase 9; no se crean tablas sin casos de uso aún construidos.
+Las fases 9–12 añaden `analytics_datasets`, `dataset_variables`, `dataset_observations`, `statistical_analyses`, `analysis_variables`, `statistical_results`, `bayesian_analyses`, `bayesian_evidence`, `bayesian_results`, `insights`, `insight_evidence` y `reports`. Alembic crea estas tablas para instalaciones existentes; los scripts `database/03_analytics.sql` y sus dependencias permiten instalarlas manualmente en PostgreSQL.

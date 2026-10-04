@@ -8,6 +8,7 @@ import PageHeader from '../components/PageHeader'
 import { useAuth } from '../App'
 import type { Category, Product } from '../types'
 import { currency } from '../utils'
+import { useRealtimeRefresh } from '../useRealtimeRefresh'
 
 const blank = { sku: '', name: '', description: '', category_id: '', price: '', stock: '0', min_stock: '5' }
 
@@ -30,7 +31,14 @@ export default function ProductsPage() {
     catch (cause) { setError(errorMessage(cause)) }
     finally { setLoading(false) }
   }
-  useEffect(() => { void Promise.all([loadProducts(''), api.get<Category[]>('/categories').then(({ data }) => setCategories(data))]).catch((cause: unknown) => setError(errorMessage(cause))) }, [])
+  async function loadCatalog(term = search) {
+    await Promise.all([
+      loadProducts(term),
+      api.get<Category[]>('/categories').then(({ data }) => setCategories(data)),
+    ]).catch((cause: unknown) => setError(errorMessage(cause)))
+  }
+  useEffect(() => { void loadCatalog('') }, [])
+  useRealtimeRefresh(() => loadCatalog())
 
   function editProduct(product: Product) {
     setEditingProduct(product)
@@ -55,8 +63,7 @@ export default function ProductsPage() {
   }
 
   return <>
-    <PageHeader eyebrow="CATÁLOGO COMERCIAL" title="Productos" description="Administra tu catálogo, precios y niveles de existencias en un mismo lugar." action={<div className="header-action-group"><a className="button button-quiet" href="/categorias">Categorías</a><button className="button button-primary" onClick={() => { setEditingProduct(null); setForm(blank); setOpen(true) }}><Plus size={17} /> Nuevo producto</button></div>} />
-      <PageHeader eyebrow="CATÁLOGO COMERCIAL" title="Productos" description="Administra tu catálogo, precios y niveles de existencias en un mismo lugar." action={canManageCatalog && <div className="header-action-group"><Link className="button button-quiet" to="/categorias">Categorías</Link><button className="button button-primary" onClick={() => { setEditingProduct(null); setForm(blank); setOpen(true) }}><Plus size={17} /> Nuevo producto</button></div>} />
+    <PageHeader eyebrow="CATÁLOGO COMERCIAL" title="Productos" description="Administra tu catálogo, precios y niveles de existencias en un mismo lugar." action={canManageCatalog && <div className="header-action-group"><Link className="button button-quiet" to="/categorias">Categorías</Link><button className="button button-primary" onClick={() => { setEditingProduct(null); setForm(blank); setOpen(true) }}><Plus size={17} /> Nuevo producto</button></div>} />
     {error && <ErrorMessage message={error} />}
     <section className="panel table-panel"><div className="table-toolbar"><div className="table-heading"><div className="table-icon products-icon"><Box size={18} /></div><div><strong>Catálogo de productos</strong><span>{products.length} productos disponibles</span></div></div><label className="search-field"><Search size={16} /><input value={search} onChange={(event) => { setSearch(event.target.value); void loadProducts(event.target.value) }} placeholder="Buscar por nombre o SKU…" /></label></div>
       {loading ? <Loading /> : products.length ? <div className="table-scroll"><table><thead><tr><th>PRODUCTO</th><th>CATEGORÍA</th><th>SKU</th><th>PRECIO</th><th>EXISTENCIAS</th><th>ESTADO</th>{canManageCatalog && <th>ACCIONES</th>}</tr></thead><tbody>{products.map((product) => <tr key={product.id}><td><div className="product-cell"><span className="product-avatar"><PackageCheck size={17} /></span><div><strong>{product.name}</strong><small>{product.description || 'Sin descripción'}</small></div></div></td><td><span className="category-chip">{product.category?.name || 'Sin categoría'}</span></td><td><span className="document-code">{product.sku}</span></td><td><strong className="price-value">{currency(product.price)}</strong></td><td><div className="stock-indicator"><span className={product.stock <= product.min_stock ? 'stock-dot low' : 'stock-dot'} />{product.stock} unidades</div></td><td><span className={`status-pill ${product.stock <= product.min_stock ? 'status-low' : 'status-active'}`}>{product.stock <= product.min_stock ? 'Stock bajo' : 'Disponible'}</span></td>{canManageCatalog && <td><div className="row-actions"><button className="icon-button" onClick={() => editProduct(product)} aria-label={`Editar ${product.name}`}><Pencil size={15} /></button><button className="icon-button danger-action" onClick={() => void deactivateProduct(product)} aria-label={`Desactivar ${product.name}`}><Trash2 size={15} /></button></div></td>}</tr>)}</tbody></table></div> : <EmptyState title="Catálogo vacío" description="Crea tu primer producto para empezar a gestionar ventas e inventario." />}

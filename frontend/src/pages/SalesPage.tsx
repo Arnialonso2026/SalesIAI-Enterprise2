@@ -7,6 +7,7 @@ import PageHeader from '../components/PageHeader'
 import { useAuth } from '../App'
 import type { Sale } from '../types'
 import { currency, dateTime } from '../utils'
+import { useRealtimeRefresh } from '../useRealtimeRefresh'
 
 export default function SalesPage() {
   const { user } = useAuth()
@@ -22,6 +23,7 @@ export default function SalesPage() {
     finally { setLoading(false) }
   }
   useEffect(() => { void load('') }, [])
+  useRealtimeRefresh(() => load())
   const total = sales.reduce((sum, sale) => sum + sale.total, 0)
 
   return <>

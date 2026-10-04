@@ -8,6 +8,7 @@ import PageHeader from '../components/PageHeader'
 import { useAuth } from '../App'
 import type { DashboardSummary } from '../types'
 import { currency, dateShort, dateTime } from '../utils'
+import { useRealtimeRefresh } from '../useRealtimeRefresh'
 
 const emptySummary: DashboardSummary = {
   total_revenue: 0, month_revenue: 0, today_sales: 0, sales_count: 0, customers_count: 0,
@@ -21,12 +22,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
+  function loadSummary() {
     api.get<DashboardSummary>('/dashboard/summary')
       .then(({ data }) => setSummary(data))
       .catch((cause: unknown) => setError(errorMessage(cause)))
       .finally(() => setLoading(false))
-  }, [])
+  }
+  useEffect(() => { loadSummary() }, [])
+  useRealtimeRefresh(loadSummary)
 
   const chartData = summary.daily_sales.map((item) => ({ ...item, label: dateShort(item.date) }))
   const metrics = [

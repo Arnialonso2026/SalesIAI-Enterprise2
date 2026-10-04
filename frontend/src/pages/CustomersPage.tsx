@@ -7,6 +7,7 @@ import PageHeader from '../components/PageHeader'
 import { useAuth } from '../App'
 import type { Customer, Sale } from '../types'
 import { currency, dateShort, dateTime } from '../utils'
+import { useRealtimeRefresh } from '../useRealtimeRefresh'
 
 const blank = { name: '', email: '', phone: '', document_number: '', address: '' }
 
@@ -32,6 +33,7 @@ export default function CustomersPage() {
     finally { setLoading(false) }
   }
   useEffect(() => { void loadCustomers('') }, [])
+  useRealtimeRefresh(() => loadCustomers())
 
   function editCustomer(customer: Customer) {
     setEditingCustomer(customer)

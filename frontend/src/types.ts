@@ -93,3 +93,67 @@ export interface InventoryMovement {
   note: string | null
   created_at: string
 }
+
+export interface AnalyticsDashboard {
+  start_date: string
+  end_date: string
+  revenue: number
+  previous_revenue: number
+  revenue_change_percent: number | null
+  sales_count: number
+  average_ticket: number
+  active_customers: number
+  low_stock_products: number
+  daily_sales: { date: string; total: number }[]
+  top_products: { name: string; quantity: number; revenue: number }[]
+  payment_methods: { method: string; amount: number }[]
+}
+
+export interface StatisticalAnalysis {
+  id: number
+  name: string
+  analysis_type: string
+  created_at: string
+  results: Record<string, number | number[] | null>
+}
+
+export interface StatisticalCalculation {
+  id: number
+  dataset_id: number
+  name: string
+  results: Record<string, number | number[] | null>
+}
+
+export interface BayesianAnalysis {
+  id: number
+  name: string
+  question: string
+  prior_probability: number | null
+  posterior_probability: number | null
+  created_at: string
+}
+
+export interface InsightEvidence {
+  description: string
+  evidence: Record<string, unknown>
+}
+
+export interface Insight {
+  id: number
+  title: string
+  description: string
+  severity: 'info' | 'positive' | 'warning'
+  status: 'new' | 'read' | 'dismissed'
+  created_at: string
+  evidence: InsightEvidence[]
+}
+
+export interface AnalyticsReport {
+  id: number
+  name: string
+  report_type: string
+  status: string
+  parameters: Record<string, unknown>
+  created_at: string
+  generated_at: string | null
+}

@@ -7,6 +7,7 @@ import PageHeader from '../components/PageHeader'
 import { useAuth } from '../App'
 import type { InventoryMovement, Product } from '../types'
 import { dateTime } from '../utils'
+import { useRealtimeRefresh } from '../useRealtimeRefresh'
 
 const movementLabel: Record<string, string> = { sale: 'Venta', entry: 'Ingreso', adjustment: 'Ajuste', initial: 'Stock inicial' }
 
@@ -30,6 +31,7 @@ export default function InventoryPage() {
     } catch (cause) { setError(errorMessage(cause)) } finally { setLoading(false) }
   }
   useEffect(() => { void load() }, [])
+  useRealtimeRefresh(load)
 
   async function adjust(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

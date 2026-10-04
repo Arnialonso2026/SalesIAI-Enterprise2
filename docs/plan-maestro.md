@@ -14,10 +14,10 @@ Construir una plataforma empresarial donde las operaciones comerciales generan d
 | 06 | Frontend React | Interfaz responsive y consumo de API | Completada |
 | 07 | Clientes y productos | CRUD, filtros, catálogo, fichas y categorías | Completada |
 | 08 | Ventas, pedidos e inventario | Venta transaccional, detalle, pago, stock e historial | Completada |
-| 09 | Motor estadístico — Semana 07 | Variables, media, mediana, probabilidad y Bayes | Pendiente |
-| 10 | Dashboard Analytics | KPIs, gráficos, filtros y evolución | Pendiente |
-| 11 | Insights empresariales | Reglas explicables y evidencia numérica | Pendiente |
-| 12 | Reportes | Reportes comerciales/estadísticos y exportación | Pendiente |
+| 09 | Motor estadístico — Semana 07 | Variables, media, mediana, probabilidad y Bayes | Completada |
+| 10 | Dashboard Analytics | KPIs, gráficos, filtros y evolución | Completada |
+| 11 | Insights empresariales | Reglas explicables y evidencia numérica | Completada |
+| 12 | Reportes | Reportes comerciales/estadísticos y exportación | Completada |
 | 13 | Seguridad y auditoría | Roles granulares, permisos y auditoría avanzada | Parcial: roles y permisos implementados; auditoría avanzada pendiente |
 | 14 | Pruebas y calidad | Pruebas de integración, API, UI y aceptación | Pendiente |
 | 15 | Despliegue | Ambientes, HTTPS, monitoreo y publicación | Pendiente |
@@ -25,7 +25,7 @@ Construir una plataforma empresarial donde las operaciones comerciales generan d
 
 ## Criterio de corte
 
-El producto implementado en las fases 1–8 permite iniciar sesión, mantener clientes y catálogo, registrar ventas, cobrar, descontar existencias y consultar la trazabilidad. No se presentan todavía estadísticas inferenciales, insights ni reportes avanzados; pertenecen a fases posteriores.
+El producto implementado en las fases 1–12 permite mantener la operación comercial y consultar sus indicadores, cálculos estadísticos, insights explicables e informes exportables. El motor estadístico trabaja sobre series numéricas suministradas; no incluye todavía inferencia automática desde archivos arbitrarios ni modelos predictivos.
 
 ## Estado de entrega
 

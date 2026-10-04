@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { BarChart3, Box, CircleDollarSign, ClipboardList, LayoutDashboard, LogOut, PackageSearch, Tags, UserRoundCog, Users } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useAuth } from '../App'
+import './navigation.css'
 
 const navigation = [
   { label: 'Resumen', path: '/', icon: LayoutDashboard },
@@ -10,11 +11,12 @@ const navigation = [
   { label: 'Productos', path: '/productos', icon: Box },
   { label: 'Categorías', path: '/categorias', icon: Tags, allowedRoles: ['admin', 'warehouse'] },
   { label: 'Inventario', path: '/inventario', icon: PackageSearch },
+  { label: 'Analítica', path: '/analitica', icon: BarChart3, allowedRoles: ['admin', 'manager', 'analyst'] },
   { label: 'Usuarios', path: '/usuarios', icon: UserRoundCog, adminOnly: true },
 ]
 
 const titles: Record<string, string> = {
-  '/': 'Resumen ejecutivo', '/ventas': 'Ventas', '/ventas/nueva': 'Nueva venta', '/categorias': 'Categorías',
+  '/': 'Resumen ejecutivo', '/ventas': 'Ventas', '/ventas/nueva': 'Nueva venta', '/categorias': 'Categorías', '/analitica': 'Analítica',
   '/clientes': 'Clientes', '/productos': 'Productos', '/inventario': 'Inventario', '/usuarios': 'Usuarios',
 }
 const roleLabels: Record<string, string> = {

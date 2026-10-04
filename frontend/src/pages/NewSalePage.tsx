@@ -6,6 +6,7 @@ import { ErrorMessage } from '../components/Feedback'
 import PageHeader from '../components/PageHeader'
 import type { Customer, Product, Sale } from '../types'
 import { currency } from '../utils'
+import { useRealtimeRefresh } from '../useRealtimeRefresh'
 
 type CartLine = { product: Product; quantity: number }
 const TAX_RATE = 0.18
@@ -23,16 +24,25 @@ export default function NewSalePage() {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    Promise.all([api.get<Product[]>('/products'), api.get<Customer[]>('/customers')])
-      .then(([productResponse, customerResponse]) => {
-        setProducts(productResponse.data)
-        setCustomers(customerResponse.data)
+  async function loadSaleOptions(selectInitialProduct = false) {
+    try {
+      const [productResponse, customerResponse] = await Promise.all([api.get<Product[]>('/products'), api.get<Customer[]>('/customers')])
+      setProducts(productResponse.data)
+      setCustomers(customerResponse.data)
+      setCart((current) => current.map((line) => {
+        const latestProduct = productResponse.data.find((product) => product.id === line.product.id)
+        return latestProduct ? { ...line, product: latestProduct } : line
+      }))
+      if (selectInitialProduct) {
         const firstAvailable = productResponse.data.find((product) => product.stock > 0)
         if (firstAvailable) setProductId(String(firstAvailable.id))
-      })
-      .catch((cause: unknown) => setError(errorMessage(cause)))
-  }, [])
+      }
+    } catch (cause) {
+      setError(errorMessage(cause))
+    }
+  }
+  useEffect(() => { void loadSaleOptions(true) }, [])
+  useRealtimeRefresh(() => loadSaleOptions())
 
   const subtotal = useMemo(() => cart.reduce((sum, line) => sum + line.product.price * line.quantity, 0), [cart])
   const discountAmount = Math.min(subtotal, Math.max(0, Number(discount) || 0))

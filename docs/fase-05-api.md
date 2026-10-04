@@ -23,6 +23,20 @@ Las respuestas de listado son arreglos JSON. Los errores de validación/negocio 
 | GET / POST | `/api/v1/users` | Admin | Listar usuarios de la empresa y crear cuentas con DNI, contraseña y rol |
 | PUT / DELETE | `/api/v1/users/{id}` | Admin | Editar usuario o retirar acceso conservando ventas históricas |
 | POST | `/api/v1/users/{id}/clear-password` | Admin | Quitar contraseña y desactivar la cuenta |
+| GET | `/api/v1/analytics/dashboard` | Admin, gerente, analista | KPIs, comparación, ventas diarias, productos y métodos de pago; acepta `start_date` y `end_date` |
+| GET / POST | `/api/v1/analytics/statistics` | Admin, gerente, analista | Consultar historial y guardar medidas descriptivas de una serie numérica |
+| GET / POST | `/api/v1/analytics/bayes` | Admin, gerente, analista | Consultar historial y calcular probabilidad posterior |
+| GET | `/api/v1/analytics/insights` | Admin, gerente, analista | Consultar hallazgos y evidencia |
+| POST | `/api/v1/analytics/insights/generate` | Admin, gerente, analista | Generar hallazgos para el rango elegido |
+| PATCH | `/api/v1/analytics/insights/{id}` | Admin, gerente, analista | Marcar como nuevo, revisado o descartado |
+| GET | `/api/v1/analytics/reports` | Admin, gerente, analista | Consultar historial de exportaciones |
+| POST | `/api/v1/analytics/reports/export` | Admin, gerente, analista | Descargar informe CSV o JSON y registrar la generación |
+
+## Eventos en tiempo real
+
+Conecta a `/api/v1/realtime/ws` usando los subprotocolos `salesia` y `bearer.<JWT>`. Tras cada escritura HTTP autenticada con respuesta 2xx, los sockets de la misma empresa reciben `data_changed` con el recurso y la operación; no se envía el contenido del registro. El cliente se reconecta con espera exponencial y vuelve a consultar la vista activa. Las conexiones inválidas se rechazan y los eventos no cruzan empresas.
+
+El hub es en memoria y soporta una instancia/proceso de API. Para ejecutar varias réplicas o workers, sustituirlo por Redis Pub/Sub u otro broker compartido.
 
 ## Ejemplo de venta
 

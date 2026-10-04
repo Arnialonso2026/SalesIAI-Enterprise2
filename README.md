@@ -90,4 +90,4 @@ npm run build
 
 ## Plan maestro
 
-El estado por fase, los criterios y los límites de esta entrega están en [docs/plan-maestro.md](docs/plan-maestro.md). Los documentos individuales describen análisis, arquitectura, diseño, modelo de datos, API y flujos de las fases 01–08. El motor estadístico solicitado en el plan comienza en la fase 09 y no se marca como realizado.
+El estado por fase y los criterios de entrega están en [docs/plan-maestro.md](docs/plan-maestro.md). La analítica de las fases 09–12 incluye estadísticas, dashboard, insights y exportación de reportes; sus contratos y criterios están documentados en `docs/fase-09` a `docs/fase-12`.

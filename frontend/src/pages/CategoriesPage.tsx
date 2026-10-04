@@ -6,6 +6,7 @@ import { EmptyState, ErrorMessage, Loading } from '../components/Feedback'
 import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
 import type { Category } from '../types'
+import { useRealtimeRefresh } from '../useRealtimeRefresh'
 
 const blank = { name: '', description: '' }
 
@@ -25,6 +26,7 @@ export default function CategoriesPage() {
     finally { setLoading(false) }
   }
   useEffect(() => { void load() }, [])
+  useRealtimeRefresh(load)
 
   function openForm(category: Category | null = null) {
     setEditing(category)

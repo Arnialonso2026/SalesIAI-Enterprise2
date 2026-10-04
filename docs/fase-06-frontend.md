@@ -17,6 +17,7 @@ Aplicación SPA React + TypeScript sobre Vite, rutas con React Router, cliente H
 | `/ventas/nueva` | Punto de venta | Carrito, cliente, descuento, IGV, pago y confirmación |
 | `/inventario` | Control de existencias | Niveles, ajuste con motivo e historial de movimientos |
 | `/usuarios` | Administración (solo admin) | Crear, editar, desactivar y retirar credenciales; asignar DNI, contraseña y rol |
+| `/analitica` | Analítica (admin, gerente, analista) | Dashboard con filtros, cálculos estadísticos y Bayes, insights accionables e informes CSV/JSON |
 
 ## Estados y componentes
 
