@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -7,12 +7,13 @@ from app.database import get_db
 from app.deps import get_current_user
 from app.models import User
 from app.schemas import LoginIn, TokenOut, UserOut
+from app.services.audit import record_audit_event
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 
 @router.post("/login", response_model=TokenOut)
-def login(payload: LoginIn, db: Session = Depends(get_db)) -> TokenOut:
+def login(request: Request, payload: LoginIn, db: Session = Depends(get_db)) -> TokenOut:
     user = db.scalar(select(User).where(User.dni == payload.dni))
     if (
         user is None
@@ -21,6 +22,17 @@ def login(payload: LoginIn, db: Session = Depends(get_db)) -> TokenOut:
         or not verify_password(payload.password, user.password_hash)
     ):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="DNI o contraseña incorrectos.")
+    record_audit_event(
+        db,
+        company_id=user.company_id,
+        user_id=user.id,
+        action="login",
+        entity_type="auth",
+        entity_id=user.id,
+        details={"method": "dni"},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
     return TokenOut(access_token=create_access_token(str(user.id)), user=UserOut.model_validate(user))
 
 

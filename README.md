@@ -1,6 +1,6 @@
 # SalesIA Enterprise — Matrixflow-V2
 
-> Plataforma web empresarial de gestión comercial. Este repositorio implementa las fases **01 a 08** del plan maestro adjunto; las fases 09 a 16 quedan como siguientes entregables.
+> Plataforma web empresarial de gestión comercial. Este repositorio implementa las fases **01 a 14** del plan maestro; la fase 15 está en preparación y la fase 16 queda pendiente.
 
 ## Qué incluye
 
@@ -9,6 +9,10 @@
 - **Fases 05–06:** API FastAPI con JWT y aplicación React + TypeScript.
 - **Fase 07:** clientes, categorías y productos con búsqueda.
 - **Fase 08:** punto de venta, cálculo de descuento e IGV, registro de pago e historial trazable de inventario.
+- **Fases 09–12:** analítica, dashboard, insights y exportación de reportes.
+- **Fase 13:** roles, permisos y auditoría de accesos y usuarios; cobertura de auditoría aún parcial.
+- **Fase 14:** pruebas backend/frontend y validación de build.
+- **Fase 15:** configuración base para Supabase, Render y Vercel; publicación pendiente.
 
 ## Arranque rápido (Docker)
 
@@ -60,7 +64,7 @@ frontend/
 	src/components/      Layout y controles reutilizables
 	src/pages/           Resumen, usuarios, clientes, productos, categorías, ventas e inventario
 	src/                 API HTTP, tipos, rutas y diseño responsive
-docs/                  Entregables y criterios de aceptación de fases 01–08
+docs/                  Entregables y criterios de aceptación de las fases
 docker-compose.yml     PostgreSQL + API + frontend para desarrollo local
 Plan_Desarrollo_SalesIA_Enterprise.pdf
 ```
@@ -90,4 +94,4 @@ npm run build
 
 ## Plan maestro
 
-El estado por fase y los criterios de entrega están en [docs/plan-maestro.md](docs/plan-maestro.md). La analítica de las fases 09–12 incluye estadísticas, dashboard, insights y exportación de reportes; sus contratos y criterios están documentados en `docs/fase-09` a `docs/fase-12`.
+El estado por fase y los criterios de entrega están en [docs/plan-maestro.md](docs/plan-maestro.md). La guía de publicación en Supabase, Render y Vercel está en [docs/fase-15-despliegue.md](docs/fase-15-despliegue.md); la fase no se cierra hasta desplegar y verificar los servicios reales.

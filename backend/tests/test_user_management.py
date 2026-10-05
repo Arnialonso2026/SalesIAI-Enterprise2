@@ -93,6 +93,13 @@ def test_admin_manages_dni_password_roles_and_access() -> None:
         assert client.post("/api/v1/auth/login", json={
             "dni": "87654321", "password": "Restaurada2026!",
         }).status_code == 401
+
+        audit_logs = client.get("/api/v1/audit/logs", headers=admin_headers)
+        assert audit_logs.status_code == 200, audit_logs.text
+        actions = {item["action"] for item in audit_logs.json()}
+        assert "login" in actions
+        assert any(item["entity_type"] == "user" for item in audit_logs.json())
+
         listed = client.get("/api/v1/users", headers=admin_headers)
         assert listed.status_code == 200
         archived = next(item for item in listed.json() if item["id"] == user_id)

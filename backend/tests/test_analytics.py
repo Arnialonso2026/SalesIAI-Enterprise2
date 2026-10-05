@@ -19,7 +19,7 @@ def test_postgres_sql_scripts_cover_every_model_table() -> None:
     )
     declared_tables = set(re.findall(r"CREATE TABLE (\w+)", sql))
 
-    assert len(declared_tables) == 22
+    assert len(declared_tables) == 23
     assert declared_tables == set(Base.metadata.tables)
 
 

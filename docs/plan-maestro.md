@@ -19,8 +19,8 @@ Construir una plataforma empresarial donde las operaciones comerciales generan d
 | 11 | Insights empresariales | Reglas explicables y evidencia numérica | Completada |
 | 12 | Reportes | Reportes comerciales/estadísticos y exportación | Completada |
 | 13 | Seguridad y auditoría | Roles granulares, permisos y auditoría avanzada | Parcial: roles y permisos implementados; auditoría avanzada pendiente |
-| 14 | Pruebas y calidad | Pruebas de integración, API, UI y aceptación | Pendiente |
-| 15 | Despliegue | Ambientes, HTTPS, monitoreo y publicación | Pendiente |
+| 14 | Pruebas y calidad | Pruebas de integración, API, UI y aceptación | Completada |
+| 15 | Despliegue | Ambientes, HTTPS, monitoreo y publicación | En curso: configuración preparada; publicación y verificación pendientes |
 | 16 | Cierre y documentación | Manuales, evidencias y mantenimiento | Pendiente |
 
 ## Criterio de corte

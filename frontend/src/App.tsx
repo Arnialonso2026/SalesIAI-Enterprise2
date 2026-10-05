@@ -87,7 +87,7 @@ export default function App() {
     let socket: WebSocket | null = null
 
     const connect = () => {
-      const socketUrl = new URL(import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1', window.location.origin)
+      const socketUrl = new URL(import.meta.env.VITE_API_URL ?? '/api/v1', window.location.origin)
       socketUrl.protocol = socketUrl.protocol === 'https:' ? 'wss:' : 'ws:'
       socketUrl.pathname = `${socketUrl.pathname.replace(/\/$/, '')}/realtime/ws`
       socket = new WebSocket(socketUrl, ['salesia', `bearer.${token}`])

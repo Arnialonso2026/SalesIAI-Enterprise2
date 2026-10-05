@@ -36,6 +36,19 @@ class UserOut(ORMModel):
     password_configured: bool
 
 
+class AuditLogOut(ORMModel):
+    id: int
+    company_id: int
+    user_id: int | None
+    action: str
+    entity_type: str
+    entity_id: int | None
+    details: dict[str, object]
+    ip_address: str | None
+    user_agent: str | None
+    created_at: datetime
+
+
 class LoginIn(BaseModel):
     dni: str = Field(min_length=8, max_length=8)
     password: str = Field(min_length=1, max_length=128)

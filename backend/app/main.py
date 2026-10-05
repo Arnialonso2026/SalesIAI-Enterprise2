@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import RequestResponseEndpoint
 
 from app.core.config import settings
-from app.routers import analytics, auth, catalog, dashboard, realtime, sales, users
+from app.routers import analytics, audit, auth, catalog, dashboard, realtime, sales, users
 from app.seed import seed_demo_data
 from app.services.realtime import realtime_hub
 
@@ -54,6 +54,7 @@ async def broadcast_successful_changes(
     return response
 
 app.include_router(auth.router, prefix=settings.api_v1_prefix)
+app.include_router(audit.router, prefix=settings.api_v1_prefix)
 app.include_router(catalog.router, prefix=settings.api_v1_prefix)
 app.include_router(sales.router, prefix=settings.api_v1_prefix)
 app.include_router(dashboard.router, prefix=settings.api_v1_prefix)
