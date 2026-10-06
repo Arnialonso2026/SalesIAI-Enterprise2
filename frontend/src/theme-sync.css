@@ -118,6 +118,12 @@ body { background: var(--app-bg) !important; color: var(--app-text) !important; 
 :root[data-theme='dark'] .analytics-insight-content > p,
 :root[data-theme='dark'] .analytics-muted { color: #9ca9bc !important; }
 :root[data-theme='dark'] .analytics-tabs button.is-active { background: #172d55 !important; border-color: #5c8fff !important; color: #8eb0ff !important; }
+:root[data-theme='dark'] .analytics-stat-visualization-heading { color: #eef4ff; }
+:root[data-theme='dark'] .analytics-stat-visualization-heading span,
+:root[data-theme='dark'] .analytics-stat-legend { color: #9ca9bc; }
+.theme-toggle{display:grid;width:34px;height:34px;place-items:center;flex:none;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--app-muted);cursor:pointer}
+.theme-toggle:hover{background:var(--app-surface-soft);color:var(--app-blue)}
+.theme-toggle:focus-visible{outline:2px solid var(--app-blue);outline-offset:2px}
 
 :root[data-theme='dark'] .audit-overview-card,
 :root[data-theme='dark'] .audit-map-panel,

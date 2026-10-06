@@ -38,8 +38,8 @@ def summary(db: Session = Depends(get_db), user: User = Depends(get_current_user
     )) or 0
 
     daily_rows = db.execute(
-        select(func.date(Sale.created_at), func.sum(Sale.total))
-        .where(Sale.company_id == user.company_id, Sale.status == "completed", Sale.created_at >= now - timedelta(days=6))
+        select(func.date(Sale.created_at), func.sum(Sale.total), func.count(Sale.id))
+        .where(Sale.company_id == user.company_id, Sale.status == "completed", Sale.created_at >= start_today - timedelta(days=6))
         .group_by(func.date(Sale.created_at)).order_by(func.date(Sale.created_at))
     ).all()
     recent_sales = db.scalars(sales_query.order_by(Sale.created_at.desc()).limit(6)).all()
@@ -51,7 +51,10 @@ def summary(db: Session = Depends(get_db), user: User = Depends(get_current_user
         "sales_count": sales_count,
         "customers_count": customers_count,
         "low_stock_count": low_stock,
-        "daily_sales": [{"date": str(day), "total": float(total)} for day, total in daily_rows],
+        "daily_sales": [
+            {"date": str(day), "total": float(total), "count": int(count)}
+            for day, total, count in daily_rows
+        ],
         "recent_sales": [{
             "id": sale.id, "sale_number": sale.sale_number, "total": float(sale.total),
             "status": sale.status, "created_at": sale.created_at.isoformat(),

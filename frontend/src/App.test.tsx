@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -121,5 +121,31 @@ describe('App access control', () => {
     await userEvent.click(screen.getByRole('menuitem', { name: /ajustes/i }))
 
     expect(await screen.findByRole('heading', { name: 'Ajustes' })).toBeInTheDocument()
+  })
+
+  it('alterna el tema desde el encabezado y conserva la elección', async () => {
+    localStorage.setItem('salesia_user', JSON.stringify({
+      id: 1,
+      full_name: 'Administrador de prueba',
+      email: null,
+      dni: '12345678',
+      role: 'admin',
+      company_id: 1,
+      is_active: true,
+      password_configured: true,
+    }))
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    const toggle = await screen.findByRole('button', { name: /cambiar a tema (claro|oscuro)/i })
+    const nextTheme = toggle.getAttribute('aria-label')?.endsWith('oscuro') ? 'dark' : 'light'
+    await userEvent.click(toggle)
+
+    expect(localStorage.getItem('salesia_theme')).toBe(nextTheme)
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe(nextTheme))
   })
 })

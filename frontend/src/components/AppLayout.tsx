@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { BarChart3, Box, CircleDollarSign, ClipboardList, FileText, LayoutDashboard, LogOut, PackageSearch, Settings, ShieldCheck, Tags, UserRoundCog, Users } from 'lucide-react'
+import { BarChart3, Box, CircleDollarSign, ClipboardList, FileText, LayoutDashboard, LogOut, Moon, PackageSearch, Settings, ShieldCheck, Sun, Tags, UserRoundCog, Users } from 'lucide-react'
 import { useAuth } from '../App'
 import './navigation.css'
 
@@ -36,7 +36,7 @@ const roleLabels: Record<string, string> = {
 }
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-  const { user, signOut } = useAuth()
+  const { user, signOut, setTheme } = useAuth()
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -45,6 +45,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     (!item.adminOnly || user?.role === 'admin') && (!item.allowedRoles || item.allowedRoles.includes(user?.role ?? '')),
   )
   const initials = user?.full_name.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase() ?? 'SA'
+  const isDarkTheme = document.documentElement.dataset.theme === 'dark'
 
   useEffect(() => {
     function closeMenu(event: MouseEvent) {
@@ -94,7 +95,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <main className="main-area">
         <header className="topbar">
           <div className="breadcrumb"><span>SalesIA</span><span className="crumb-slash">/</span><strong>{titles[pathname] ?? 'Panel'}</strong></div>
-          <div className="topbar-actions"><span className="live-status"><i /> Sistema operativo</span><div className="topbar-divider" /><div className="topbar-user"><span className="topbar-avatar">{initials}</span><span>{user?.full_name.split(' ')[0]}</span></div></div>
+          <div className="topbar-actions"><span className="live-status"><i /> Sistema operativo</span><div className="topbar-divider" /><button className="theme-toggle" type="button" aria-label={`Cambiar a tema ${isDarkTheme ? 'claro' : 'oscuro'}`} title={`Cambiar a tema ${isDarkTheme ? 'claro' : 'oscuro'}`} onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')}>{isDarkTheme ? <Sun size={17} /> : <Moon size={17} />}</button><div className="topbar-user"><span className="topbar-avatar">{initials}</span><span>{user?.full_name.split(' ')[0]}</span></div></div>
         </header>
         <section className="page-content">{children}</section>
       </main>

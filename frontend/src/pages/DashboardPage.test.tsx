@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DashboardPage from './DashboardPage'
@@ -51,6 +52,9 @@ describe('DashboardPage', () => {
     ))).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /registrar venta/i })).toHaveAttribute('href', '/ventas/nueva')
     expect(screen.getByText('Aún no hay ventas para mostrar.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ingresos' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(screen.getByRole('button', { name: 'Ventas' }))
+    expect(screen.getByRole('button', { name: 'Ventas' })).toHaveAttribute('aria-pressed', 'true')
     expect(mocks.get).toHaveBeenCalledWith('/dashboard/summary')
   })
 })

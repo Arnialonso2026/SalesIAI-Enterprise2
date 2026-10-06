@@ -127,7 +127,7 @@ export interface DashboardSummary {
   sales_count: number
   customers_count: number
   low_stock_count: number
-  daily_sales: { date: string; total: number }[]
+  daily_sales: { date: string; total: number; count?: number }[]
   recent_sales: { id: number; sale_number: string; total: number; status: string; created_at: string }[]
 }
 

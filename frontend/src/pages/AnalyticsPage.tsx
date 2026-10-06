@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Activity, BarChart3, Check, Download, FileSpreadsheet, FlaskConical, Lightbulb, LoaderCircle, Sigma, Sparkles, X } from 'lucide-react'
-import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api, errorMessage } from '../api'
 import { ErrorMessage, Loading } from '../components/Feedback'
 import PageHeader from '../components/PageHeader'
@@ -178,6 +178,20 @@ export default function AnalyticsPage() {
   }
 
   const chartData = dashboard?.daily_sales.map((item) => ({ ...item, label: dateShort(item.date) })) ?? []
+  const statisticValues = valuesText.split(/[\s,;]+/).filter(Boolean).map(Number)
+  const validStatisticValues = statisticValues.length > 0 && statisticValues.every(Number.isFinite)
+  const statisticChartData = validStatisticValues
+    ? statisticValues.map((value, index) => ({ observation: String(index + 1), value }))
+    : []
+  const sortedStatisticValues = [...statisticValues].sort((first, second) => first - second)
+  const statisticMean = validStatisticValues
+    ? statisticValues.reduce((total, value) => total + value, 0) / statisticValues.length
+    : null
+  const statisticMedian = validStatisticValues
+    ? sortedStatisticValues.length % 2
+      ? sortedStatisticValues[Math.floor(sortedStatisticValues.length / 2)]
+      : (sortedStatisticValues[sortedStatisticValues.length / 2 - 1] + sortedStatisticValues[sortedStatisticValues.length / 2]) / 2
+    : null
   const metrics = dashboard ? [
     { label: 'Ingresos del periodo', value: currency(dashboard.revenue), detail: dashboard.revenue_change_percent === null ? 'Sin periodo comparable' : `${dashboard.revenue_change_percent >= 0 ? '+' : ''}${dashboard.revenue_change_percent.toFixed(1)}% frente al periodo previo`, tone: 'revenue' },
     { label: 'Ventas completadas', value: String(dashboard.sales_count), detail: `Ticket promedio ${currency(dashboard.average_ticket)}`, tone: 'orders' },
@@ -236,6 +250,11 @@ export default function AnalyticsPage() {
           {calculation && <div className="analytics-result"><div className="analytics-result-heading"><strong>{calculation.name}</strong><span>{calculation.results.count} observaciones</span></div><div className="analytics-stat-grid">{[
             ['Media', calculation.results.mean], ['Mediana', calculation.results.median], ['Desv. estándar', calculation.results.standard_deviation_population], ['Mínimo', calculation.results.minimum], ['Máximo', calculation.results.maximum], ['Probabilidad', calculation.results.probability_at_or_above_threshold === null ? null : `${(Number(calculation.results.probability_at_or_above_threshold) * 100).toFixed(1)}%`],
           ].map(([label, value]) => <div key={String(label)}><small>{label}</small><strong>{value === null ? 'Sin umbral' : typeof value === 'number' ? value.toFixed(2) : value}</strong></div>)}</div></div>}
+          {statisticChartData.length > 0 && <div className="analytics-stat-visualization">
+            <div className="analytics-stat-visualization-heading"><strong>Serie de observaciones</strong><span>{statisticChartData.length} valores</span></div>
+            <div className="analytics-stat-chart"><ResponsiveContainer width="100%" height="100"><BarChart data={statisticChartData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}><CartesianGrid strokeDasharray="3 5" vertical={false} stroke="var(--app-line)" /><XAxis dataKey="observation" axisLine={false} tickLine={false} tick={{ fill: '#8390a2', fontSize: 10 }} /><YAxis axisLine={false} tickLine={false} tick={{ fill: '#8390a2', fontSize: 9 }} width={42} /><Tooltip formatter={(value) => [Number(value), variableName || 'Valor']} labelFormatter={(label) => `Observación ${label}`} /><Bar dataKey="value" name={variableName || 'Valor'} fill="#2e83c4" radius={[3, 3, 0, 0]} barSize={24} /><ReferenceLine y={statisticMean ?? 0} stroke="#21a787" strokeDasharray="4 4" label={{ value: 'Media', fill: '#21a787', fontSize: 9, position: 'insideTopRight' }} /><ReferenceLine y={statisticMedian ?? 0} stroke="#d5963d" strokeDasharray="4 4" label={{ value: 'Mediana', fill: '#bd812d', fontSize: 9, position: 'insideBottomRight' }} />{threshold.trim() && Number.isFinite(Number(threshold)) && <ReferenceLine y={Number(threshold)} stroke="#d16b72" strokeDasharray="4 4" label={{ value: 'Umbral', fill: '#c45b63', fontSize: 9, position: 'insideTopLeft' }} />}</BarChart></ResponsiveContainer></div>
+            <div className="analytics-stat-legend"><span><i className="mean-mark" />Media</span><span><i className="median-mark" />Mediana</span>{threshold.trim() && Number.isFinite(Number(threshold)) && <span><i className="threshold-mark" />Umbral</span>}</div>
+          </div>}
           <div className="analytics-history"><h3>Análisis recientes</h3>{statistics.slice(0, 5).map((item) => <div className="analytics-history-row" key={item.id}><span><strong>{item.name}</strong><small>{dateTime(item.created_at)}</small></span><span>Media: {Number(item.results.mean ?? 0).toFixed(2)}</span></div>)}{!statistics.length && <p className="analytics-muted">Aún no hay análisis guardados.</p>}</div>
         </section>
         <section className="analytics-panel">

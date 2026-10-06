@@ -1,0 +1,6 @@
+.chart-heading-tools{display:grid;justify-items:end;gap:8px;flex:none}
+.chart-metric-switch{display:flex;align-items:center;padding:2px;border:1px solid var(--app-line);border-radius:6px;background:var(--app-surface-soft)}
+.chart-metric-switch button{min-height:27px;padding:0 9px;border:0;border-radius:4px;background:transparent;color:var(--app-muted);font-size:9px;font-weight:600;cursor:pointer}
+.chart-metric-switch button[aria-pressed='true']{background:var(--app-surface);color:var(--app-blue);box-shadow:0 1px 3px #1023461a}
+.chart-metric-switch button:focus-visible{outline:2px solid var(--app-blue);outline-offset:1px}
+@media(max-width:560px){.chart-heading-tools{align-items:end}.chart-panel .panel-heading{align-items:flex-start}.chart-metric-switch button{padding:0 7px}}
