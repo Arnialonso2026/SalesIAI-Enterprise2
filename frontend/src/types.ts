@@ -9,6 +9,54 @@ export interface User {
   password_configured: boolean
 }
 
+export interface AuditLog {
+  id: number
+  company_id: number
+  user_id: number | null
+  action: string
+  entity_type: string
+  entity_id: number | null
+  details: Record<string, unknown>
+  ip_address: string | null
+  user_agent: string | null
+  created_at: string
+}
+
+export interface LocationData {
+  ip_address: string
+  country: string
+  region: string
+  city: string
+  latitude: number
+  longitude: number
+  postal_code: string | null
+}
+
+export interface IpRegistryEntry {
+  ip_address: string
+  last_seen: string
+  action_count: number
+  users: number[]
+  user_agents: string[]
+  country: string
+  region: string
+  city: string
+  latitude: number | null
+  longitude: number | null
+}
+
+export interface Document {
+  id: number
+  company_id: number
+  uploaded_by_id: number | null
+  title: string
+  filename: string
+  original_filename: string
+  mime_type: string
+  size_bytes: number
+  created_at: string
+}
+
 export interface Customer {
   id: number
   name: string

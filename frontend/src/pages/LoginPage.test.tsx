@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import LoginPage from './LoginPage'
 
@@ -34,12 +35,18 @@ describe('LoginPage', () => {
     })
 
     const user = userEvent.setup()
-    render(<LoginPage />)
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
 
     await user.type(screen.getByLabelText(/dni/i), '12345678')
     await user.type(screen.getByLabelText(/contraseña/i), 'Password2026!')
     await user.click(screen.getByRole('button', { name: /entrar a mi espacio/i }))
 
+    expect(screen.queryByRole('button', { name: /demostración/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/SalesIA2026!/i)).not.toBeInTheDocument()
     expect(mocks.mockPost).toHaveBeenCalledWith('/auth/login', {
       dni: '12345678',
       password: 'Password2026!',
@@ -51,7 +58,11 @@ describe('LoginPage', () => {
     mocks.mockPost.mockRejectedValue(new Error('DNI o contraseña incorrectos.'))
 
     const user = userEvent.setup()
-    render(<LoginPage />)
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
 
     await user.type(screen.getByLabelText(/dni/i), '12345678')
     await user.type(screen.getByLabelText(/contraseña/i), 'incorrecta')

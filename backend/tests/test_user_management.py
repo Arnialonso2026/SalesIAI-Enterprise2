@@ -1,3 +1,5 @@
+import os
+
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.database import Base, engine  # noqa: E402
@@ -10,7 +12,7 @@ def test_admin_manages_dni_password_roles_and_access() -> None:
         connection.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
     with TestClient(app) as client:
         admin_login = client.post("/api/v1/auth/login", json={
-            "dni": "00000001", "password": "SalesIA2026!",
+            "dni": os.environ["ADMIN_DNI"], "password": os.environ["ADMIN_PASSWORD"],
         })
         assert admin_login.status_code == 200, admin_login.text
         admin_headers = {"Authorization": f"Bearer {admin_login.json()['access_token']}"}
@@ -22,7 +24,7 @@ def test_admin_manages_dni_password_roles_and_access() -> None:
         assert last_admin_removal.status_code == 409
 
         created = client.post("/api/v1/users", headers=admin_headers, json={
-            "full_name": "Luis Vendedor", "email": None, "dni": "12345678",
+            "full_name": "Luis Vendedor", "email": None, "dni": "87654321",
             "password": "Vendedor2026!", "role": "seller",
         })
         assert created.status_code == 201, created.text
@@ -33,7 +35,7 @@ def test_admin_manages_dni_password_roles_and_access() -> None:
         assert "password" not in user
 
         seller_login = client.post("/api/v1/auth/login", json={
-            "dni": "12345678", "password": "Vendedor2026!",
+            "dni": "87654321", "password": "Vendedor2026!",
         })
         assert seller_login.status_code == 200
         seller_headers = {"Authorization": f"Bearer {seller_login.json()['access_token']}"}
@@ -47,7 +49,7 @@ def test_admin_manages_dni_password_roles_and_access() -> None:
         assert updated.json()["role"] == "warehouse"
         assert updated.json()["dni"] == "87654321"
         assert client.post("/api/v1/auth/login", json={
-            "dni": "12345678", "password": "Vendedor2026!",
+            "dni": "87654321", "password": "Vendedor2026!",
         }).status_code == 401
         assert client.post("/api/v1/auth/login", json={
             "dni": "87654321", "password": "NuevoPassword2026!",
@@ -111,7 +113,7 @@ def test_admin_manages_dni_password_roles_and_access() -> None:
         })
         assert invalid_dni.status_code == 422
         duplicate_dni = client.post("/api/v1/users", headers=admin_headers, json={
-            "full_name": "DNI duplicado", "dni": "00000001", "password": "Password2026!", "role": "seller",
+            "full_name": "DNI duplicado", "dni": os.environ["ADMIN_DNI"], "password": "Password2026!", "role": "seller",
         })
         assert duplicate_dni.status_code == 409
 

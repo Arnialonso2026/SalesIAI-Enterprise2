@@ -42,7 +42,6 @@ export default function LoginPage() {
           {error && <div className="login-error">{error}</div>}
           <button className="button button-primary login-submit" disabled={loading}>{loading ? 'Ingresando…' : <>Entrar a mi espacio <ArrowRight size={17} /></>}</button>
         </form>
-        <div className="login-demo"><span className="demo-light" /><div><strong>Acceso con credenciales de usuario</strong><small>Solicita tu DNI y contraseña al administrador.</small></div></div>
         <div className="login-copyright">© 2026 SalesIA Enterprise <span>•</span> Proyecto académico SENATI</div>
       </div></section>
     </div>

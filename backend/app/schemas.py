@@ -49,6 +49,41 @@ class AuditLogOut(ORMModel):
     created_at: datetime
 
 
+class LocationOut(BaseModel):
+    ip_address: str
+    country: str
+    region: str
+    city: str
+    latitude: float
+    longitude: float
+    postal_code: str | None
+
+
+class IpRegistryOut(BaseModel):
+    ip_address: str
+    last_seen: datetime
+    action_count: int
+    users: list[int]
+    user_agents: list[str]
+    country: str = "No disponible"
+    region: str = ""
+    city: str = ""
+    latitude: float | None = None
+    longitude: float | None = None
+
+
+class DocumentOut(ORMModel):
+    id: int
+    company_id: int
+    uploaded_by_id: int | None
+    title: str
+    filename: str
+    original_filename: str
+    mime_type: str
+    size_bytes: int
+    created_at: datetime
+
+
 class LoginIn(BaseModel):
     dni: str = Field(min_length=8, max_length=8)
     password: str = Field(min_length=1, max_length=128)

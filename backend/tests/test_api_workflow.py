@@ -1,3 +1,5 @@
+import os
+
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.database import Base, engine, SessionLocal  # noqa: E402
@@ -11,7 +13,7 @@ def test_authenticated_sale_updates_inventory_and_is_atomic() -> None:
         connection.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
     with TestClient(app) as client:
         login = client.post("/api/v1/auth/login", json={
-            "dni": "00000001", "password": "SalesIA2026!",
+            "dni": os.environ["ADMIN_DNI"], "password": os.environ["ADMIN_PASSWORD"],
         })
         assert login.status_code == 200, login.text
         token = login.json()["access_token"]
@@ -73,7 +75,7 @@ def test_authenticated_sale_updates_inventory_and_is_atomic() -> None:
             admin.role = "analyst"
             db.commit()
         analyst_login = client.post("/api/v1/auth/login", json={
-            "dni": "00000001", "password": "SalesIA2026!",
+            "dni": os.environ["ADMIN_DNI"], "password": os.environ["ADMIN_PASSWORD"],
         })
         analyst_headers = {"Authorization": f"Bearer {analyst_login.json()['access_token']}"}
         forbidden = client.post("/api/v1/categories", headers=analyst_headers, json={

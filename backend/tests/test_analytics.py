@@ -3,6 +3,8 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
+import os
+
 from fastapi.testclient import TestClient
 from sqlalchemy import inspect
 
@@ -19,7 +21,7 @@ def test_postgres_sql_scripts_cover_every_model_table() -> None:
     )
     declared_tables = set(re.findall(r"CREATE TABLE (\w+)", sql))
 
-    assert len(declared_tables) == 23
+    assert len(declared_tables) == 24
     assert declared_tables == set(Base.metadata.tables)
 
 
@@ -75,7 +77,7 @@ def test_analytics_api_persists_analyses_insights_and_reports() -> None:
 
     with TestClient(app) as client:
         login = client.post("/api/v1/auth/login", json={
-            "dni": "00000001", "password": "SalesIA2026!",
+            "dni": os.environ["ADMIN_DNI"], "password": os.environ["ADMIN_PASSWORD"],
         })
         assert login.status_code == 200, login.text
         headers = {"Authorization": f"Bearer {login.json()['access_token']}"}

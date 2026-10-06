@@ -1,7 +1,13 @@
+import os
+
 from fastapi.testclient import TestClient
 
 from app.database import Base, engine
 from app.main import app
+
+
+ADMIN_DNI = os.environ["ADMIN_DNI"]
+ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
 
 
 def test_auth_api_contract_rejects_invalid_access_and_returns_current_user() -> None:
@@ -15,7 +21,7 @@ def test_auth_api_contract_rejects_invalid_access_and_returns_current_user() -> 
         assert client.get("/api/v1/sales").status_code == 401
 
         invalid_login = client.post("/api/v1/auth/login", json={
-            "dni": "00000001", "password": "incorrecta",
+            "dni": os.environ["ADMIN_DNI"], "password": "incorrecta",
         })
         assert invalid_login.status_code == 401
 
@@ -25,7 +31,7 @@ def test_auth_api_contract_rejects_invalid_access_and_returns_current_user() -> 
         assert malformed_login.status_code == 422
 
         login = client.post("/api/v1/auth/login", json={
-            "dni": "00000001", "password": "SalesIA2026!",
+            "dni": ADMIN_DNI, "password": ADMIN_PASSWORD,
         })
         assert login.status_code == 200, login.text
         token = login.json()["access_token"]
@@ -33,7 +39,7 @@ def test_auth_api_contract_rejects_invalid_access_and_returns_current_user() -> 
 
         current_user = client.get("/api/v1/auth/me", headers=headers)
         assert current_user.status_code == 200, current_user.text
-        assert current_user.json()["dni"] == "00000001"
+        assert current_user.json()["dni"] == ADMIN_DNI
         assert current_user.json()["role"] == "admin"
         assert "password_hash" not in current_user.json()
 

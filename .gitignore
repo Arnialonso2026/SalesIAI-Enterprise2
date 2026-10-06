@@ -11,6 +11,9 @@ venv/
 .env.*
 !.env.example
 
+# Local development database
+*.sqlite3
+
 # Frontend
 node_modules/
 dist/

@@ -1,10 +1,15 @@
-import { createContext, lazy, Suspense, useContext, useEffect, useMemo, useState } from 'react'
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { createContext, lazy, Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { api } from './api'
 import type { User } from './types'
 import AppLayout from './components/AppLayout'
+import RouteGuard from './components/RouteGuard'
 import { REALTIME_CHANGE_EVENT } from './useRealtimeRefresh'
+import './theme.css'
+import './theme-sync.css'
+import './toast.css'
 
+const LandingPage = lazy(() => import('./pages/LandingPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const CustomersPage = lazy(() => import('./pages/CustomersPage'))
@@ -14,11 +19,18 @@ const SalesPage = lazy(() => import('./pages/SalesPage'))
 const NewSalePage = lazy(() => import('./pages/NewSalePage'))
 const InventoryPage = lazy(() => import('./pages/InventoryPage'))
 const UsersPage = lazy(() => import('./pages/UsersPage'))
+const AuditPage = lazy(() => import('./pages/AuditPage'))
+const DocumentationPage = lazy(() => import('./pages/DocumentationPage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
+
+type ThemeMode = 'light' | 'dark' | 'system'
 
 interface AuthContextValue {
   user: User | null
   authLoading: boolean
+  theme: ThemeMode
+  setTheme: (theme: ThemeMode) => void
   signIn: (token: string, user: User) => void
   signOut: () => void
 }
@@ -32,25 +44,15 @@ export function useAuth(): AuthContextValue {
 }
 
 function ProtectedLayout() {
-  const { user, authLoading } = useAuth()
-  if (authLoading) return <div className="feedback-state">Verificando sesión…</div>
-  return user ? <AppLayout><Outlet /></AppLayout> : <Navigate to="/login" replace />
+  return <AppLayout><RouteGuard /></AppLayout>
 }
 
 function AdminLayout() {
-  const { user, authLoading } = useAuth()
-  if (authLoading) return <div className="feedback-state">Verificando sesión…</div>
-  if (!user) return <Navigate to="/login" replace />
-  if (user.role !== 'admin') return <Navigate to="/" replace />
-  return <AppLayout><Outlet /></AppLayout>
+  return <AppLayout><RouteGuard allowedRoles={['admin']} /></AppLayout>
 }
 
-function RoleLayout({ allowed }: { allowed: string[] }) {
-  const { user, authLoading } = useAuth()
-  if (authLoading) return <div className="feedback-state">Verificando sesión…</div>
-  if (!user) return <Navigate to="/login" replace />
-  if (!allowed.includes(user.role)) return <Navigate to="/" replace />
-  return <AppLayout><Outlet /></AppLayout>
+function RoleLayout({ allowed }: { allowed: User['role'][] }) {
+  return <AppLayout><RouteGuard allowedRoles={allowed} /></AppLayout>
 }
 
 export default function App() {
@@ -59,6 +61,25 @@ export default function App() {
     return saved ? JSON.parse(saved) as User : null
   })
   const [authLoading, setAuthLoading] = useState(Boolean(localStorage.getItem('salesia_token')))
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    const saved = localStorage.getItem('salesia_theme') as ThemeMode | null
+    return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'system'
+  })
+  const [toast, setToast] = useState<{ id: number; message: string } | null>(null)
+  const toastTimer = useRef<number | undefined>(undefined)
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const applyTheme = () => {
+      document.documentElement.dataset.theme = theme === 'system'
+        ? (mediaQuery.matches ? 'dark' : 'light')
+        : theme
+    }
+
+    applyTheme()
+    if (theme === 'system') mediaQuery.addEventListener('change', applyTheme)
+    return () => mediaQuery.removeEventListener('change', applyTheme)
+  }, [theme])
 
   useEffect(() => {
     let active = true
@@ -86,6 +107,23 @@ export default function App() {
     let hasConnected = false
     let socket: WebSocket | null = null
 
+    const showToast = (event: { resource?: string; operation?: string; status_code?: number }) => {
+      if (event.resource === undefined || event.operation === undefined || event.status_code === undefined) return
+      const resourceLabels: Record<string, string> = {
+        users: 'Usuarios', customers: 'Clientes', products: 'Productos', categories: 'Categorías',
+        sales: 'Ventas', inventory: 'Inventario', documents: 'Documentación', audit: 'Auditoría',
+        analytics: 'Analítica', dashboard: 'Panel',
+      }
+      const operationLabels: Record<string, string> = {
+        post: 'se agregó', put: 'se actualizó', patch: 'se modificó', delete: 'se eliminó',
+      }
+      const resource = resourceLabels[event.resource] ?? event.resource
+      const operation = operationLabels[event.operation] ?? 'se modificó'
+      setToast({ id: Date.now(), message: `${resource} ${operation}.` })
+      window.clearTimeout(toastTimer.current)
+      toastTimer.current = window.setTimeout(() => setToast(null), 5000)
+    }
+
     const connect = () => {
       const socketUrl = new URL(import.meta.env.VITE_API_URL ?? '/api/v1', window.location.origin)
       socketUrl.protocol = socketUrl.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -100,7 +138,7 @@ export default function App() {
       }
       socket.onmessage = ({ data }) => {
         try {
-          const event = JSON.parse(data) as { resource?: string }
+          const event = JSON.parse(data) as { type?: string; resource?: string; operation?: string; status_code?: number }
           if (event.resource === 'users') {
             void api.get<User>('/auth/me')
               .then(({ data: currentUser }) => {
@@ -113,6 +151,7 @@ export default function App() {
                 setUser(null)
               })
           }
+          if (event.type === 'data_changed') showToast(event)
           window.dispatchEvent(new CustomEvent(REALTIME_CHANGE_EVENT, { detail: event }))
         } catch {
           return
@@ -137,6 +176,7 @@ export default function App() {
     return () => {
       active = false
       window.clearTimeout(retryTimer)
+      window.clearTimeout(toastTimer.current)
       socket?.close()
     }
   }, [authLoading, user?.id])
@@ -144,6 +184,11 @@ export default function App() {
   const auth = useMemo<AuthContextValue>(() => ({
     user,
     authLoading,
+    theme,
+    setTheme: (nextTheme) => {
+      localStorage.setItem('salesia_theme', nextTheme)
+      setTheme(nextTheme)
+    },
     signIn: (token, nextUser) => {
       localStorage.setItem('salesia_token', token)
       localStorage.setItem('salesia_user', JSON.stringify(nextUser))
@@ -154,15 +199,17 @@ export default function App() {
       localStorage.removeItem('salesia_user')
       setUser(null)
     },
-  }), [user, authLoading])
+  }), [user, authLoading, theme])
 
   return (
     <AuthContext.Provider value={auth}>
+      {toast && <div className="server-toast" role="status" aria-live="polite" key={toast.id}>{toast.message}</div>}
       <Suspense fallback={<div className="feedback-state">Cargando módulo…</div>}>
         <Routes>
-          <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
           <Route element={<ProtectedLayout />}>
-            <Route path="/" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/clientes" element={<CustomersPage />} />
             <Route path="/productos" element={<ProductsPage />} />
             <Route path="/ventas" element={<SalesPage />} />
@@ -179,8 +226,13 @@ export default function App() {
           </Route>
           <Route element={<AdminLayout />}>
             <Route path="/usuarios" element={<UsersPage />} />
+            <Route path="/usuarios/auditoria" element={<AuditPage />} />
+            <Route path="/usuarios/documentacion" element={<DocumentationPage />} />
           </Route>
-          <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />
+          <Route path="/ajustes" element={<RoleLayout allowed={['admin', 'manager', 'seller', 'warehouse', 'analyst']} />}>
+            <Route index element={<SettingsPage />} />
+          </Route>
+          <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
         </Routes>
       </Suspense>
     </AuthContext.Provider>

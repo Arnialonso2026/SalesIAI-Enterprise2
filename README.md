@@ -28,11 +28,11 @@ docker compose up --build
 - API y documentación interactiva: http://localhost:8000/docs
 - Estado de API: http://localhost:8000/health
 
-La base de datos se inicializa automáticamente. Acceso demo: DNI **00000001** · contraseña **SalesIA2026!**.
+La base de datos se inicializa automáticamente. El primer administrador se crea únicamente cuando `ADMIN_DNI` y `ADMIN_PASSWORD` están configurados; no existen credenciales temporales.
 
 ## Arranque local sin Docker
 
-Se necesita Python 3.11+, Node.js 20+ y PostgreSQL 16. Crear la base y usuario local `salesia`, copiar `backend/.env.example` a `backend/.env` y ajustar `DATABASE_URL` y `SECRET_KEY`.
+Se necesita Python 3.11+, Node.js 20+ y PostgreSQL 16. Crear la base y usuario local `salesia`, copiar `backend/.env.example` a `backend/.env` y ajustar `DATABASE_URL`, `SECRET_KEY`, `ADMIN_DNI` y `ADMIN_PASSWORD`.
 
 Terminal backend (desde `backend/`):
 

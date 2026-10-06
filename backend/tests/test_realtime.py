@@ -2,6 +2,8 @@ import asyncio
 
 import pytest
 from fastapi import HTTPException
+import os
+
 from fastapi.testclient import TestClient
 
 from app.database import Base, engine, SessionLocal
@@ -50,7 +52,7 @@ def test_authenticated_websocket_receives_successful_api_changes() -> None:
 
     with TestClient(app) as client:
         login = client.post("/api/v1/auth/login", json={
-            "dni": "00000001", "password": "SalesIA2026!",
+            "dni": os.environ["ADMIN_DNI"], "password": os.environ["ADMIN_PASSWORD"],
         })
         assert login.status_code == 200, login.text
         token = login.json()["access_token"]

@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import RequestResponseEndpoint
 
 from app.core.config import settings
-from app.routers import analytics, audit, auth, catalog, dashboard, realtime, sales, users
+from app.core.proxy import TrustedProxyMiddleware
+from app.routers import analytics, audit, auth, catalog, dashboard, documents, realtime, sales, users
 from app.seed import seed_demo_data
 from app.services.realtime import realtime_hub
 
@@ -28,6 +29,10 @@ app = FastAPI(
     description="API de operaciones comerciales y analítica de SalesIA Enterprise.",
     version="0.1.0",
     lifespan=lifespan,
+)
+app.add_middleware(
+    TrustedProxyMiddleware,
+    trusted_hosts=settings.trusted_proxy_hosts,
 )
 app.add_middleware(
     CORSMiddleware,
@@ -59,6 +64,7 @@ app.include_router(catalog.router, prefix=settings.api_v1_prefix)
 app.include_router(sales.router, prefix=settings.api_v1_prefix)
 app.include_router(dashboard.router, prefix=settings.api_v1_prefix)
 app.include_router(users.router, prefix=settings.api_v1_prefix)
+app.include_router(documents.router, prefix=settings.api_v1_prefix)
 app.include_router(analytics.router, prefix=settings.api_v1_prefix)
 app.include_router(realtime.router, prefix=settings.api_v1_prefix)
 
