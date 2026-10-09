@@ -9,11 +9,12 @@ import { currency, dateShort, dateTime } from '../utils'
 import './analytics.css'
 import { useRealtimeRefresh } from '../useRealtimeRefresh'
 
-type AnalyticsTab = 'dashboard' | 'statistics' | 'insights' | 'reports'
+type AnalyticsTab = 'dashboard' | 'statistics' | 'variation' | 'insights' | 'reports'
 
 const tabs: { id: AnalyticsTab; label: string; icon: typeof BarChart3 }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
   { id: 'statistics', label: 'Estadística y Bayes', icon: Sigma },
+  { id: 'variation', label: 'Variación y desviación', icon: Activity },
   { id: 'insights', label: 'Insights', icon: Lightbulb },
   { id: 'reports', label: 'Reportes', icon: FileSpreadsheet },
 ]
@@ -178,6 +179,15 @@ export default function AnalyticsPage() {
   }
 
   const chartData = dashboard?.daily_sales.map((item) => ({ ...item, label: dateShort(item.date) })) ?? []
+  const dailyRevenueMean = chartData.length
+    ? chartData.reduce((total, day) => total + day.total, 0) / chartData.length
+    : null
+  const dailyRevenueDeviation = dailyRevenueMean === null
+    ? null
+    : Math.sqrt(chartData.reduce((total, day) => total + (day.total - dailyRevenueMean) ** 2, 0) / chartData.length)
+  const dailyRevenueCoefficient = dailyRevenueMean && dailyRevenueDeviation !== null
+    ? (dailyRevenueDeviation / dailyRevenueMean) * 100
+    : null
   const statisticValues = valuesText.split(/[\s,;]+/).filter(Boolean).map(Number)
   const validStatisticValues = statisticValues.length > 0 && statisticValues.every(Number.isFinite)
   const statisticChartData = validStatisticValues
@@ -263,17 +273,30 @@ export default function AnalyticsPage() {
         </section>
         <section className="analytics-panel">
           <div className="analytics-panel-heading"><div><span className="eyebrow">PROBABILIDAD</span><h2>Teorema de Bayes</h2><p>Actualiza la probabilidad de una hipótesis ante una evidencia.</p></div><Sparkles size={18} /></div>
+          <div className="analytics-bayes-guide"><p className="analytics-formula">P(H|E) = P(E|H) · P(H) / P(E)</p><dl className="analytics-bayes-definitions"><div><dt>H</dt><dd>Hipótesis que queremos evaluar.</dd></div><div><dt>E</dt><dd>Evidencia observada.</dd></div><div><dt>P(H)</dt><dd>Probabilidad previa de H, antes de observar E.</dd></div><div><dt>P(E|H)</dt><dd>Probabilidad de observar E si H es verdadera.</dd></div><div><dt>P(E|¬H)</dt><dd>Probabilidad de observar E si H es falsa.</dd></div><div><dt>P(E)</dt><dd>Probabilidad total de observar la evidencia.</dd></div><div><dt>P(H|E)</dt><dd>Probabilidad posterior de H después de observar E.</dd></div></dl></div>
           <form className="analytics-form" onSubmit={submitBayes}>
             <label>Nombre<input value={bayesName} onChange={(event) => setBayesName(event.target.value)} minLength={2} maxLength={160} required /></label>
             <label>Hipótesis<input value={question} onChange={(event) => setQuestion(event.target.value)} minLength={5} maxLength={1000} required /></label>
             <div className="analytics-probability-grid"><label>P(H) previa<input type="number" min="0" max="1" step="0.01" value={prior} onChange={(event) => setPrior(event.target.value)} required /></label><label>P(E|H)<input type="number" min="0" max="1" step="0.01" value={likelihoodTrue} onChange={(event) => setLikelihoodTrue(event.target.value)} required /></label><label>P(E|¬H)<input type="number" min="0" max="1" step="0.01" value={likelihoodFalse} onChange={(event) => setLikelihoodFalse(event.target.value)} required /></label></div>
-            <p className="analytics-formula">P(H|E) = P(E|H) · P(H) / P(E)</p>
             <button className="button button-primary" disabled={busy === 'bayes'}>{busy === 'bayes' ? <LoaderCircle size={16} className="analytics-spin" /> : <Sigma size={16} />} Calcular posterior</button>
           </form>
           {bayesianResult && <div className="analytics-posterior"><span>Probabilidad posterior</span><strong>{(bayesianResult.posterior_probability * 100).toFixed(2)}%</strong><small>Probabilidad de la evidencia: {(bayesianResult.evidence_probability * 100).toFixed(2)}%</small></div>}
           <div className="analytics-history"><h3>Análisis Bayes recientes</h3>{bayesianHistory.slice(0, 5).map((item) => <div className="analytics-history-row" key={item.id}><span><strong>{item.name}</strong><small>{item.question}</small></span><span>{item.posterior_probability === null ? '—' : `${(item.posterior_probability * 100).toFixed(1)}%`}</span></div>)}{!bayesianHistory.length && <p className="analytics-muted">Aún no hay análisis guardados.</p>}</div>
         </section>
       </div>}
+
+      {tab === 'variation' && (dashboardLoading ? <Loading label="Calculando variación y desviación…" /> : dashboard && <>
+        <div className="analytics-kpi-grid">
+          <article className="analytics-kpi revenue"><span>Variación de ingresos</span><strong>{dashboard.revenue_change_percent === null ? '—' : `${dashboard.revenue_change_percent >= 0 ? '+' : ''}${dashboard.revenue_change_percent.toFixed(1)}%`}</strong><small>Frente al periodo anterior</small></article>
+          <article className="analytics-kpi orders"><span>Desviación estándar diaria</span><strong>{dailyRevenueDeviation === null ? '—' : currency(dailyRevenueDeviation)}</strong><small>Ingresos por día con ventas</small></article>
+          <article className="analytics-kpi customers"><span>Variabilidad relativa</span><strong>{dailyRevenueCoefficient === null ? '—' : `${dailyRevenueCoefficient.toFixed(1)}%`}</strong><small>Dispersión respecto a la media</small></article>
+          <article className="analytics-kpi stock"><span>Días con ventas</span><strong>{chartData.length}</strong><small>Dentro del periodo seleccionado</small></article>
+        </div>
+        <section className="analytics-panel analytics-wide-panel">
+          <div className="analytics-panel-heading"><div><span className="eyebrow">DISPERSIÓN DIARIA</span><h2>Ingresos frente a la media</h2><p>La línea de referencia representa el ingreso diario promedio</p></div><Activity size={18} /></div>
+          {chartData.length ? <div className="analytics-chart"><ResponsiveContainer width="100%" height="100"><LineChart data={chartData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}><CartesianGrid strokeDasharray="3 5" vertical={false} stroke="#e9edf4" /><XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#8390a2', fontSize: 11 }} /><YAxis axisLine={false} tickLine={false} tick={{ fill: '#8390a2', fontSize: 10 }} tickFormatter={(value: number) => `S/${value}`} width={52} /><Tooltip formatter={(value) => [currency(Number(value)), 'Ingresos']} /><Line type="monotone" dataKey="total" stroke="#2572d8" strokeWidth={3} dot={{ r: 3, fill: '#fff', strokeWidth: 2 }} /><ReferenceLine y={dailyRevenueMean ?? 0} stroke="#d9903d" strokeDasharray="5 4" label={{ value: 'Media', fill: '#a96912', fontSize: 10, position: 'insideTopRight' }} /></LineChart></ResponsiveContainer></div> : <div className="analytics-empty">No hay ingresos diarios suficientes para calcular la desviación.</div>}
+        </section>
+      </>)}
 
       {tab === 'insights' && <section className="analytics-panel">
         <div className="analytics-panel-heading"><div><span className="eyebrow">FASE 11</span><h2>Insights empresariales</h2><p>Reglas transparentes basadas en ventas y existencias del periodo.</p></div><button className="button button-primary" type="button" onClick={generateInsights} disabled={busy === 'insights'}>{busy === 'insights' ? <LoaderCircle size={16} className="analytics-spin" /> : <Sparkles size={16} />} Generar insights</button></div>

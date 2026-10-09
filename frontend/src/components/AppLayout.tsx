@@ -10,24 +10,38 @@ type NavigationItem = {
   icon: typeof LayoutDashboard
   allowedRoles?: string[]
   adminOnly?: boolean
-  children?: NavigationItem[]
 }
 
-const navigation: NavigationItem[] = [
-  { label: 'Resumen', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Ventas', path: '/ventas', icon: CircleDollarSign },
-  { label: 'Clientes', path: '/clientes', icon: Users },
-  { label: 'Productos', path: '/productos', icon: Box },
-  { label: 'Categorías', path: '/categorias', icon: Tags, allowedRoles: ['admin', 'warehouse'] },
-  { label: 'Inventario', path: '/inventario', icon: PackageSearch },
-  { label: 'Analítica', path: '/analitica', icon: BarChart3, allowedRoles: ['admin', 'manager', 'analyst'] },
-  { label: 'Usuarios', path: '/usuarios', icon: UserRoundCog, adminOnly: true },
-  { label: 'Auditoría', path: '/usuarios/auditoria', icon: ShieldCheck, adminOnly: true },
-  { label: 'Documentación', path: '/usuarios/documentacion', icon: FileText, adminOnly: true },
+type NavigationGroup = {
+  label: string
+  items: NavigationItem[]
+}
+
+const navigation: NavigationGroup[] = [
+  { label: 'Ejecutivo', items: [
+    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  ] },
+  { label: 'Operaciones', items: [
+    { label: 'Ventas', path: '/ventas', icon: CircleDollarSign },
+    { label: 'Inventario y Stock', path: '/inventario', icon: PackageSearch },
+  ] },
+  { label: 'Analítica e IA', items: [
+    { label: 'Analítica', path: '/analitica', icon: BarChart3, allowedRoles: ['admin', 'manager', 'analyst'] },
+  ] },
+  { label: 'Mantenimiento', items: [
+    { label: 'Clientes', path: '/clientes', icon: Users },
+    { label: 'Productos', path: '/productos', icon: Box },
+    { label: 'Categorías', path: '/categorias', icon: Tags, allowedRoles: ['admin', 'warehouse'] },
+  ] },
+  { label: 'Administración', items: [
+    { label: 'Auditoría', path: '/usuarios/auditoria', icon: ShieldCheck, adminOnly: true },
+    { label: 'Usuarios', path: '/usuarios', icon: UserRoundCog, adminOnly: true },
+    { label: 'Documentación', path: '/usuarios/documentacion', icon: FileText, adminOnly: true },
+  ] },
 ]
 
 const titles: Record<string, string> = {
-  '/dashboard': 'Resumen ejecutivo', '/ventas': 'Ventas', '/ventas/nueva': 'Nueva venta', '/categorias': 'Categorías', '/analitica': 'Analítica',
+  '/dashboard': 'Dashboard', '/ventas': 'Ventas', '/ventas/nueva': 'Nueva venta', '/categorias': 'Categorías', '/analitica': 'Analítica',
   '/clientes': 'Clientes', '/productos': 'Productos', '/inventario': 'Inventario', '/usuarios': 'Usuarios',
   '/usuarios/auditoria': 'Auditoría', '/usuarios/documentacion': 'Documentación', '/ajustes': 'Ajustes',
 }
@@ -41,9 +55,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const visibleNavigation = navigation.filter((item) =>
-    (!item.adminOnly || user?.role === 'admin') && (!item.allowedRoles || item.allowedRoles.includes(user?.role ?? '')),
-  )
+  const visibleNavigation = navigation.map((group) => ({
+    ...group,
+    items: group.items.flatMap((item) => {
+      const visible = (!item.adminOnly || user?.role === 'admin')
+        && (!item.allowedRoles || item.allowedRoles.includes(user?.role ?? ''))
+      if (!visible) return []
+      return [item]
+    }),
+  })).filter((group) => group.items.length > 0)
   const initials = user?.full_name.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase() ?? 'SA'
   const isDarkTheme = document.documentElement.dataset.theme === 'dark'
 
@@ -76,11 +96,19 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div className="workspace-card"><div className="workspace-avatar">M</div><div><strong>SalesIA Enterprise</strong><small>Plan empresarial</small></div><span className="workspace-dot" /></div>
         <div className="nav-caption">MENÚ PRINCIPAL</div>
         <nav className="sidebar-nav">
-          {visibleNavigation.map(({ label, path, icon: Icon }) => (
-            <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-              <Icon size={18} strokeWidth={1.9} /><span>{label}</span>
-              {label === 'Inventario' && <span className="nav-tag">STOCK</span>}
-            </NavLink>
+          {visibleNavigation.map(({ label: groupLabel, items }) => (
+            <section className={`nav-section${items.some(({ path }) => pathname === path || pathname.startsWith(`${path}/`)) ? ' is-active' : ''}`} key={groupLabel}>
+              <h2 className="nav-section-title">{groupLabel}</h2>
+              <div className="nav-section-links">
+                {items.map(({ label, path, icon: Icon }) => (
+                  <div className="nav-item" key={path}>
+                    <NavLink to={path} end={path !== '/ventas'} title={label} aria-label={label} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+                      <Icon size={18} strokeWidth={1.9} /><span>{label}</span>
+                    </NavLink>
+                  </div>
+                ))}
+              </div>
+            </section>
           ))}
         </nav>
         <div className="sidebar-spacer" />

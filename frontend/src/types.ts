@@ -64,6 +64,11 @@ export interface Customer {
   phone: string | null
   document_number: string | null
   address: string | null
+  customer_type: 'individual' | 'business'
+  contact_name: string | null
+  industry: string | null
+  preferred_contact_method: 'whatsapp' | 'phone' | 'email'
+  notes: string | null
   is_active: boolean
   created_at: string
 }

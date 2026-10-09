@@ -24,6 +24,7 @@ def list_customers(
         query = query.where(or_(
             Customer.name.ilike(term), Customer.document_number.ilike(term),
             Customer.email.ilike(term), Customer.phone.ilike(term), Customer.address.ilike(term),
+            Customer.contact_name.ilike(term), Customer.industry.ilike(term),
         ))
     return list(db.scalars(query.order_by(Customer.name).limit(200)).all())
 

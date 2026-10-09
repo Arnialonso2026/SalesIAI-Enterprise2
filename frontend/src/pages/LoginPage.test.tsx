@@ -45,13 +45,33 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText(/contraseña/i), 'Password2026!')
     await user.click(screen.getByRole('button', { name: /entrar a mi espacio/i }))
 
-    expect(screen.queryByRole('button', { name: /acceso temporal al dashboard/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/SalesIA2026!/i)).not.toBeInTheDocument()
     expect(mocks.mockPost).toHaveBeenCalledWith('/auth/login', {
       dni: '12345678',
       password: 'Password2026!',
     })
     expect(mocks.mockSignIn).toHaveBeenCalledWith('demo-token', expect.objectContaining({ dni: '12345678' }))
+  })
+
+  it('permite iniciar una sesión de administrador demo en desarrollo', async () => {
+    mocks.mockPost.mockResolvedValue({
+      data: {
+        access_token: 'demo-token',
+        user: { id: 1, full_name: 'Administrador de demostración', email: null, dni: '12345678', role: 'admin', company_id: 1, is_active: true, password_configured: false },
+      },
+    })
+
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Acceso temporal de administrador' }))
+
+    expect(mocks.mockPost).toHaveBeenCalledWith('/auth/demo')
+    expect(mocks.mockSignIn).toHaveBeenCalledWith('demo-token', expect.objectContaining({ role: 'admin' }))
   })
 
   it('muestra el error de autenticación sin iniciar sesión', async () => {

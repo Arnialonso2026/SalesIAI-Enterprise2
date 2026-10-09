@@ -6,6 +6,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 UserRole = Literal["admin", "manager", "seller", "analyst", "warehouse"]
+CustomerType = Literal["individual", "business"]
+CustomerContactMethod = Literal["whatsapp", "phone", "email"]
 
 
 def validate_dni(value: str) -> str:
@@ -127,6 +129,11 @@ class CustomerIn(BaseModel):
     phone: str | None = Field(default=None, max_length=40)
     document_number: str | None = Field(default=None, max_length=30)
     address: str | None = Field(default=None, max_length=255)
+    customer_type: CustomerType = "individual"
+    contact_name: str | None = Field(default=None, max_length=160)
+    industry: str | None = Field(default=None, max_length=120)
+    preferred_contact_method: CustomerContactMethod = "whatsapp"
+    notes: str | None = Field(default=None, max_length=1000)
 
 
 class CustomerOut(ORMModel):
@@ -136,6 +143,11 @@ class CustomerOut(ORMModel):
     phone: str | None
     document_number: str | None
     address: str | None
+    customer_type: CustomerType
+    contact_name: str | None
+    industry: str | None
+    preferred_contact_method: CustomerContactMethod
+    notes: str | None
     is_active: bool
     created_at: datetime
 

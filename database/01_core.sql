@@ -40,6 +40,11 @@ CREATE TABLE customers (
     phone varchar(40),
     document_number varchar(30),
     address varchar(255),
+    customer_type varchar(20) NOT NULL DEFAULT 'individual',
+    contact_name varchar(160),
+    industry varchar(120),
+    preferred_contact_method varchar(20) NOT NULL DEFAULT 'whatsapp',
+    notes text,
     is_active boolean NOT NULL DEFAULT true,
     created_at timestamptz NOT NULL DEFAULT now()
 );

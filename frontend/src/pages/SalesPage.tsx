@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ArrowUpRight, CircleDollarSign, Eye, Plus, Search, ShoppingBag } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api, errorMessage } from '../api'
 import { EmptyState, ErrorMessage, Loading } from '../components/Feedback'
 import Modal from '../components/Modal'
@@ -11,6 +11,9 @@ import { currency, dateTime, formatCustomerDocument } from '../utils'
 import { useRealtimeRefresh } from '../useRealtimeRefresh'
 
 export default function SalesPage() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const createdSale = (location.state as { createdSale?: string } | null)?.createdSale
   const { user } = useAuth()
   const canCreateSale = user?.role === 'admin' || user?.role === 'seller'
   const [sales, setSales] = useState<Sale[]>([])
@@ -27,6 +30,13 @@ export default function SalesPage() {
   }
   useEffect(() => { void load('') }, [])
   useRealtimeRefresh(() => load())
+  useEffect(() => {
+    if (!createdSale) return
+    const timeout = window.setTimeout(() => {
+      navigate(location.pathname, { replace: true, state: null })
+    }, 5000)
+    return () => window.clearTimeout(timeout)
+  }, [createdSale, location.pathname, navigate])
   const total = sales.reduce((sum, sale) => sum + sale.total, 0)
   const statusLabels: Record<string, string> = { completed: 'Completada', pending: 'Pendiente', cancelled: 'Anulada' }
 
@@ -41,6 +51,7 @@ export default function SalesPage() {
 
   return <>
     <PageHeader eyebrow="OPERACIÓN COMERCIAL" title="Ventas" description="Consulta el historial de ventas y da seguimiento a cada operación registrada." action={canCreateSale && <Link className="button button-primary" to="/ventas/nueva"><Plus size={17} /> Nueva venta</Link>} />
+    {createdSale && <div className="server-toast" role="status" aria-live="polite" key={createdSale}>Venta registrada. Orden {createdSale}</div>}
     {error && <ErrorMessage message={error} />}
     <div className="sales-summary-row"><div className="sales-summary-card"><span className="summary-icon"><ShoppingBag size={18} /></span><div><small>Operaciones en pantalla</small><strong>{sales.length}</strong></div></div><div className="sales-summary-card"><span className="summary-icon summary-icon-green"><CircleDollarSign size={18} /></span><div><small>Importe del historial</small><strong>{currency(total)}</strong></div></div><div className="sales-summary-note"><ArrowUpRight size={16} /><span>Las ventas descuentan stock y dejan un registro de inventario.</span></div></div>
     <section className="panel table-panel"><div className="table-toolbar"><div className="table-heading"><div className="table-icon sales-icon"><ShoppingBag size={18} /></div><div><strong>Historial de ventas</strong><span>Ventas, pagos y detalle de cada operación</span></div></div><label className="search-field"><Search size={16} /><input value={search} onChange={(event) => { setSearch(event.target.value); void load(event.target.value) }} placeholder="Orden, cliente, RUC, contacto o vendedor…" /></label></div>

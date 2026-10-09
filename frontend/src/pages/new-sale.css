@@ -1,0 +1,119 @@
+.sale-customer-context {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid var(--app-line);
+}
+
+.sale-customer-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sale-customer-avatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--app-blue, #3477e7) 12%, var(--app-surface-soft, #f7f9fc));
+  color: var(--app-blue, #3477e7);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sale-customer-heading > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.sale-customer-heading strong {
+  overflow-wrap: anywhere;
+  color: var(--app-text, #17233b);
+  font-size: 12px;
+}
+
+.sale-customer-heading small,
+.sale-customer-metrics dt,
+.sale-customer-last-purchase,
+.sale-customer-summary-state {
+  color: var(--app-muted, #8993a6);
+  font-size: 10px;
+}
+
+.sale-customer-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.sale-customer-contact a,
+.sale-customer-contact span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--app-muted, #8993a6);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.sale-customer-contact a:hover {
+  color: var(--app-blue, #3477e7);
+}
+
+.sale-customer-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 10px 0;
+  border-block: 1px solid var(--app-line);
+}
+
+.sale-customer-metrics div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sale-customer-metrics dd {
+  margin: 0;
+  color: var(--app-text, #17233b);
+  font-size: 12px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.sale-customer-last-purchase strong {
+  color: var(--app-text, #17233b);
+  font-weight: 600;
+}
+
+.sale-customer-notes {
+  padding: 1px 0 1px 10px;
+  border-left: 2px solid var(--app-blue, #3477e7);
+}
+
+.sale-customer-notes strong {
+  color: var(--app-muted, #8993a6);
+  font-size: 10px;
+}
+
+.sale-customer-notes p {
+  margin: 4px 0 0;
+  color: var(--app-text, #17233b);
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.sale-customer-summary-state {
+  padding: 8px 0;
+}

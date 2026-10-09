@@ -43,6 +43,36 @@ def test_auth_api_contract_rejects_invalid_access_and_returns_current_user() -> 
         assert current_user.json()["role"] == "admin"
         assert "password_hash" not in current_user.json()
 
+        customer_payload = {
+            "name": "Empresa de prueba",
+            "email": "contacto@ejemplo.com",
+            "phone": "+51 900 000 000",
+            "document_number": "20601234567",
+            "address": "Lima",
+            "customer_type": "business",
+            "contact_name": "Ana Pérez",
+            "industry": "Servicios profesionales",
+            "preferred_contact_method": "email",
+            "notes": "Facturación mensual",
+        }
+        created_customer = client.post("/api/v1/customers", headers=headers, json=customer_payload)
+        assert created_customer.status_code == 201, created_customer.text
+        customer_id = created_customer.json()["id"]
+        assert created_customer.json() == {
+            **customer_payload,
+            "id": customer_id,
+            "is_active": True,
+            "created_at": created_customer.json()["created_at"],
+        }
+
+        customer_payload["industry"] = "Tecnología"
+        updated_customer = client.put(
+            f"/api/v1/customers/{customer_id}", headers=headers, json=customer_payload,
+        )
+        assert updated_customer.status_code == 200, updated_customer.text
+        assert updated_customer.json()["industry"] == "Tecnología"
+        assert client.get(f"/api/v1/customers?search=Ana%20Pérez", headers=headers).json()[0] == updated_customer.json()
+
     Base.metadata.drop_all(bind=engine)
     with engine.begin() as connection:
         connection.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
