@@ -124,6 +124,7 @@ class Sale(Base):
     notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
     customer: Mapped[Customer | None] = relationship(back_populates="sales")
+    created_by: Mapped[User | None] = relationship(foreign_keys=[created_by_id])
     items: Mapped[list["SaleItem"]] = relationship(back_populates="sale", cascade="all, delete-orphan")
     payments: Mapped[list["Payment"]] = relationship(back_populates="sale", cascade="all, delete-orphan")
 

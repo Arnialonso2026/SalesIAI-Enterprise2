@@ -204,9 +204,16 @@ class PaymentOut(ORMModel):
     paid_at: datetime
 
 
+class SaleCreatorOut(ORMModel):
+    id: int
+    full_name: str
+    role: str
+
 class SaleOut(ORMModel):
     id: int
     sale_number: str
+    created_by_id: int | None
+    created_by: SaleCreatorOut | None = None
     customer_id: int | None
     customer: CustomerOut | None = None
     status: str
@@ -278,6 +285,7 @@ class AnalyticsDashboardOut(BaseModel):
     daily_sales: list[dict[str, str | float]]
     top_products: list[dict[str, str | int | float]]
     payment_methods: list[dict[str, str | float]]
+    sales_by_seller: list[dict[str, int | float | str]]
 
 
 class InsightStatusIn(BaseModel):

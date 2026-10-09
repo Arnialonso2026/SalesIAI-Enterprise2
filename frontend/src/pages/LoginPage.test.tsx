@@ -45,7 +45,7 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText(/contraseña/i), 'Password2026!')
     await user.click(screen.getByRole('button', { name: /entrar a mi espacio/i }))
 
-    expect(screen.queryByRole('button', { name: /demostración/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /acceso temporal al dashboard/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/SalesIA2026!/i)).not.toBeInTheDocument()
     expect(mocks.mockPost).toHaveBeenCalledWith('/auth/login', {
       dni: '12345678',
@@ -71,4 +71,5 @@ describe('LoginPage', () => {
     expect(await screen.findByText('DNI o contraseña incorrectos.')).toBeInTheDocument()
     expect(mocks.mockSignIn).not.toHaveBeenCalled()
   })
+
 })

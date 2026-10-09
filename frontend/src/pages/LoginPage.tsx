@@ -13,18 +13,22 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function authenticate(loginDni: string, loginPassword: string) {
     setLoading(true)
     setError('')
     try {
-      const { data } = await api.post<LoginResponse>('/auth/login', { dni, password })
+      const { data } = await api.post<LoginResponse>('/auth/login', { dni: loginDni, password: loginPassword })
       signIn(data.access_token, data.user)
     } catch (cause) {
       setError(errorMessage(cause))
     } finally {
       setLoading(false)
     }
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await authenticate(dni, password)
   }
 
   return (

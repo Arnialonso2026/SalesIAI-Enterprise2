@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.config import settings
@@ -21,17 +22,28 @@ def list_sales(
     db: Session = Depends(get_db), user: User = Depends(get_current_user),
 ) -> list[Sale]:
     query = select(Sale).options(
-        joinedload(Sale.customer), selectinload(Sale.items), selectinload(Sale.payments)
+        joinedload(Sale.customer), joinedload(Sale.created_by),
+        selectinload(Sale.items), selectinload(Sale.payments)
     ).where(Sale.company_id == user.company_id)
     if search.strip():
-        query = query.where(Sale.sale_number.ilike(f"%{search.strip()}%"))
+        term = f"%{search.strip()}%"
+        query = query.where(or_(
+            Sale.sale_number.ilike(term),
+            Sale.customer.has(or_(
+                Customer.name.ilike(term), Customer.document_number.ilike(term),
+                Customer.email.ilike(term), Customer.phone.ilike(term),
+                Customer.address.ilike(term),
+            )),
+            Sale.created_by.has(or_(User.full_name.ilike(term), User.dni.ilike(term))),
+        ))
     return list(db.scalars(query.order_by(Sale.created_at.desc()).limit(200)).unique().all())
 
 
 @router.get("/{sale_id}", response_model=SaleOut)
 def get_sale(sale_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> Sale:
     sale = db.scalar(select(Sale).options(
-        joinedload(Sale.customer), selectinload(Sale.items), selectinload(Sale.payments)
+        joinedload(Sale.customer), joinedload(Sale.created_by),
+        selectinload(Sale.items), selectinload(Sale.payments)
     ).where(Sale.id == sale_id, Sale.company_id == user.company_id))
     if sale is None:
         raise HTTPException(status_code=404, detail="No se encontró la venta.")

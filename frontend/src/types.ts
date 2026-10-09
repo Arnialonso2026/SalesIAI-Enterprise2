@@ -68,6 +68,14 @@ export interface Customer {
   created_at: string
 }
 
+export interface CustomerSalesSummary {
+  customer_id: number
+  sales_count: number
+  total_spent: number
+  average_ticket: number
+  last_purchase_at: string | null
+}
+
 export interface Category {
   id: number
   name: string
@@ -104,9 +112,17 @@ export interface Payment {
   paid_at: string
 }
 
+export interface SaleCreator {
+  id: number
+  full_name: string
+  role: string
+}
+
 export interface Sale {
   id: number
   sale_number: string
+  created_by_id: number | null
+  created_by: SaleCreator | null
   customer_id: number | null
   customer: Customer | null
   status: string
@@ -128,7 +144,7 @@ export interface DashboardSummary {
   customers_count: number
   low_stock_count: number
   daily_sales: { date: string; total: number; count?: number }[]
-  recent_sales: { id: number; sale_number: string; total: number; status: string; created_at: string }[]
+  recent_sales: { id: number; sale_number: string; total: number; status: string; created_at: string; created_by: string | null }[]
 }
 
 export interface InventoryMovement {
@@ -155,6 +171,7 @@ export interface AnalyticsDashboard {
   daily_sales: { date: string; total: number }[]
   top_products: { name: string; quantity: number; revenue: number }[]
   payment_methods: { method: string; amount: number }[]
+  sales_by_seller: { user_id: number; seller_name: string; sales_count: number; revenue: number; average_ticket: number }[]
 }
 
 export interface StatisticalAnalysis {

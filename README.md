@@ -28,7 +28,7 @@ docker compose up --build
 - API y documentación interactiva: http://localhost:8000/docs
 - Estado de API: http://localhost:8000/health
 
-La base de datos se inicializa automáticamente. El primer administrador se crea únicamente cuando `ADMIN_DNI` y `ADMIN_PASSWORD` están configurados; no existen credenciales temporales.
+La base de datos se inicializa automáticamente. El primer administrador se crea únicamente cuando `ADMIN_DNI` y `ADMIN_PASSWORD` están configurados. El acceso temporal del login solo está habilitado cuando `APP_ENV=development`; crea una sesión de administrador válida por una hora para revisar todos los apartados. Úsala solo con datos locales de desarrollo, ya que permite modificar datos. El despliegue configura `APP_ENV=production`, donde ese endpoint no está disponible.
 
 ## Arranque local sin Docker
 

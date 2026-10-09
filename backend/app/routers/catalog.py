@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
@@ -21,7 +21,10 @@ def list_customers(
     query = select(Customer).where(Customer.company_id == user.company_id, Customer.is_active.is_(True))
     if search.strip():
         term = f"%{search.strip()}%"
-        query = query.where(or_(Customer.name.ilike(term), Customer.email.ilike(term), Customer.phone.ilike(term)))
+        query = query.where(or_(
+            Customer.name.ilike(term), Customer.document_number.ilike(term),
+            Customer.email.ilike(term), Customer.phone.ilike(term), Customer.address.ilike(term),
+        ))
     return list(db.scalars(query.order_by(Customer.name).limit(200)).all())
 
 
@@ -64,9 +67,37 @@ def customer_sales(customer_id: int, db: Session = Depends(get_db), user: User =
     if customer is None:
         raise HTTPException(status_code=404, detail="No se encontró el cliente.")
     query = select(Sale).options(
-        joinedload(Sale.customer), selectinload(Sale.items), selectinload(Sale.payments)
+        joinedload(Sale.customer), joinedload(Sale.created_by),
+        selectinload(Sale.items), selectinload(Sale.payments)
     ).where(Sale.customer_id == customer_id, Sale.company_id == user.company_id)
     return list(db.scalars(query.order_by(Sale.created_at.desc()).limit(100)).unique().all())
+
+
+@router.get("/customers/{customer_id}/summary")
+def customer_sales_summary(
+    customer_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user),
+) -> dict[str, object]:
+    customer = db.scalar(select(Customer.id).where(
+        Customer.id == customer_id, Customer.company_id == user.company_id
+    ))
+    if customer is None:
+        raise HTTPException(status_code=404, detail="No se encontró el cliente.")
+    count, total, last_purchase = db.execute(
+        select(func.count(Sale.id), func.coalesce(func.sum(Sale.total), 0), func.max(Sale.created_at))
+        .where(
+            Sale.customer_id == customer_id,
+            Sale.company_id == user.company_id,
+            Sale.status == "completed",
+        )
+    ).one()
+    total_value = float(total)
+    return {
+        "customer_id": customer_id,
+        "sales_count": count,
+        "total_spent": total_value,
+        "average_ticket": total_value / count if count else 0.0,
+        "last_purchase_at": last_purchase.isoformat() if last_purchase else None,
+    }
 
 
 @router.get("/categories", response_model=list[CategoryOut])

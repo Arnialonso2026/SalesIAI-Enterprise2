@@ -93,6 +93,14 @@
 .analytics-report-row small{color:#9aa3b0;font-size:9px}
 .analytics-spin{animation:analytics-spin .8s linear infinite}
 @keyframes analytics-spin{to{transform:rotate(360deg)}}
+.analytics-seller-panel{margin-top:14px}
+.analytics-seller-list{display:grid}
+.analytics-seller-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid #eff1f4}
+.analytics-seller-row:last-child{border-bottom:0}
+.analytics-seller-row>div{display:grid;gap:4px;min-width:0}
+.analytics-seller-row>div strong{overflow:hidden;color:#40516a;font-size:10px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+.analytics-seller-row small{color:#929cac;font-size:9px}
+.analytics-seller-row>strong{color:#3271c6;font-size:10px}
 @media(max-width:1080px){.analytics-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-chart-grid{grid-template-columns:1fr 1fr}.analytics-wide-panel{grid-column:1/-1;grid-row:auto}}
 @media(max-width:760px){.analytics-toolbar{align-items:stretch;flex-direction:column}.analytics-tabs{width:100%}.analytics-tabs button{padding:0 9px}.analytics-date-range{justify-content:flex-end}.analytics-chart-grid,.analytics-workspace-grid,.reports-grid{grid-template-columns:1fr}.analytics-wide-panel{grid-column:auto}.analytics-chart{height:230px}}
 @media(max-width:480px){.analytics-kpi-grid{gap:8px}.analytics-kpi{padding:12px}.analytics-kpi>strong{font-size:18px}.analytics-panel{padding:14px}.analytics-date-range{justify-content:space-between}.analytics-date-range label{flex:1}.analytics-date-range input{width:100%}.analytics-probability-grid{grid-template-columns:1fr}.analytics-tabs button{gap:5px;font-size:9px}.analytics-tabs button svg{width:14px}}

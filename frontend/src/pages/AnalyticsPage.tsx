@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Activity, BarChart3, Check, Download, FileSpreadsheet, FlaskConical, Lightbulb, LoaderCircle, Sigma, Sparkles, X } from 'lucide-react'
+import { Activity, BarChart3, Check, Download, FileSpreadsheet, FlaskConical, Lightbulb, LoaderCircle, Sigma, Sparkles, Users, X } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api, errorMessage } from '../api'
 import { ErrorMessage, Loading } from '../components/Feedback'
@@ -235,6 +235,10 @@ export default function AnalyticsPage() {
             {dashboard.payment_methods.length ? <div className="analytics-payment-layout"><div className="analytics-chart analytics-pie-chart"><ResponsiveContainer width="100%" height="100"><PieChart><Pie data={dashboard.payment_methods} dataKey="amount" nameKey="method" innerRadius={45} outerRadius={72} paddingAngle={3}>{dashboard.payment_methods.map((item, index) => <Cell key={item.method} fill={palette[index % palette.length]} />)}</Pie><Tooltip formatter={(value) => currency(Number(value))} /></PieChart></ResponsiveContainer></div><div className="analytics-legend">{dashboard.payment_methods.map((item, index) => <div key={item.method}><i style={{ backgroundColor: palette[index % palette.length] }} /><span>{item.method}</span><strong>{currency(item.amount)}</strong></div>)}</div></div> : <div className="analytics-empty">No hay pagos registrados en el periodo.</div>}
           </section>
         </div>
+        <section className="analytics-panel analytics-seller-panel">
+          <div className="analytics-panel-heading"><div><span className="eyebrow">EQUIPO COMERCIAL</span><h2>Ventas por encargado</h2><p>Operaciones, ingresos y ticket promedio del periodo seleccionado</p></div><Users size={18} /></div>
+          {dashboard.sales_by_seller.length ? <div className="analytics-seller-list">{dashboard.sales_by_seller.map((seller) => <div className="analytics-seller-row" key={seller.user_id}><div><strong>{seller.seller_name}</strong><small>{seller.sales_count} ventas · Ticket promedio {currency(seller.average_ticket)}</small></div><strong>{currency(seller.revenue)}</strong></div>)}</div> : <div className="analytics-empty">No hay ventas asignadas a vendedores en este periodo.</div>}
+        </section>
       </>)}
 
       {tab === 'statistics' && <div className="analytics-workspace-grid">

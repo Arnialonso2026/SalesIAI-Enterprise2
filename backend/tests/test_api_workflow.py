@@ -2,6 +2,7 @@ import os
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app.core.config import settings  # noqa: E402
 from app.database import Base, engine, SessionLocal  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import User  # noqa: E402
@@ -22,12 +23,15 @@ def test_authenticated_sale_updates_inventory_and_is_atomic() -> None:
         products = client.get("/api/v1/products", headers=headers).json()
         product = next(item for item in products if item["sku"] == "ACC-002")
         original_stock = product["stock"]
-        customer = client.get("/api/v1/customers", headers=headers).json()[0]
+        customer = client.get(
+            "/api/v1/customers", headers=headers, params={"search": "RUC-20601234567"}
+        ).json()[0]
 
         response = client.post("/api/v1/sales", headers=headers, json={
             "customer_id": customer["id"],
             "items": [{"product_id": product["id"], "quantity": 2}],
             "discount": "10.00", "payment_method": "card",
+            "notes": "Llamar para coordinar entrega",
         })
         assert response.status_code == 201, response.text
         sale = response.json()
@@ -35,10 +39,33 @@ def test_authenticated_sale_updates_inventory_and_is_atomic() -> None:
         assert sale["tax"] == "48.24"
         assert sale["total"] == "316.24"
         assert sale["payments"][0]["method"] == "card"
+        assert sale["created_by"]["full_name"] == "Administrador SalesIA"
+        assert sale["notes"] == "Llamar para coordinar entrega"
+
+        dashboard = client.get("/api/v1/dashboard/summary", headers=headers)
+        assert dashboard.status_code == 200
+        recent_sale = next(item for item in dashboard.json()["recent_sales"] if item["id"] == sale["id"])
+        assert recent_sale["created_by"] == "Administrador SalesIA"
+        analytics = client.get("/api/v1/analytics/dashboard", headers=headers)
+        assert analytics.status_code == 200
+        seller_result = next(
+            item for item in analytics.json()["sales_by_seller"]
+            if item["user_id"] == sale["created_by_id"]
+        )
+        assert seller_result["sales_count"] == 1
+        assert seller_result["revenue"] == 316.24
+
+        matching_sales = client.get("/api/v1/sales", headers=headers, params={"search": "RUC-20601234567"})
+        assert matching_sales.status_code == 200
+        assert [item["sale_number"] for item in matching_sales.json()] == [sale["sale_number"]]
 
         customer_history = client.get(f"/api/v1/customers/{customer['id']}/sales", headers=headers)
         assert customer_history.status_code == 200
         assert [item["id"] for item in customer_history.json()] == [sale["id"]]
+        customer_summary = client.get(f"/api/v1/customers/{customer['id']}/summary", headers=headers)
+        assert customer_summary.status_code == 200
+        assert customer_summary.json()["sales_count"] == 1
+        assert customer_summary.json()["total_spent"] == 316.24
 
         category = client.post("/api/v1/categories", headers=headers, json={
             "name": "Pruebas", "description": "Categoría de integración",
@@ -82,6 +109,34 @@ def test_authenticated_sale_updates_inventory_and_is_atomic() -> None:
             "name": "No autorizada", "description": None,
         })
         assert forbidden.status_code == 403
+
+    Base.metadata.drop_all(bind=engine)
+    with engine.begin() as connection:
+        connection.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
+    engine.dispose()
+
+
+def test_demo_access_is_read_only_and_disabled_in_production(monkeypatch) -> None:
+    Base.metadata.drop_all(bind=engine)
+    with engine.begin() as connection:
+        connection.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
+    monkeypatch.setattr(settings, "app_env", "development")
+
+    with TestClient(app) as client:
+        response = client.post("/api/v1/auth/demo")
+        assert response.status_code == 200, response.text
+        demo_user = response.json()["user"]
+        assert demo_user["role"] == "admin"
+        assert demo_user["password_configured"] is False
+        headers = {"Authorization": f"Bearer {response.json()['access_token']}"}
+        assert client.get("/api/v1/sales", headers=headers).status_code == 200
+        allowed = client.post("/api/v1/categories", headers=headers, json={
+            "name": "Categoría demo", "description": None,
+        })
+        assert allowed.status_code == 201
+
+        monkeypatch.setattr(settings, "app_env", "production")
+        assert client.post("/api/v1/auth/demo").status_code == 404
 
     Base.metadata.drop_all(bind=engine)
     with engine.begin() as connection:

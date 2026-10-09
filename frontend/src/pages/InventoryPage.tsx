@@ -1,25 +1,28 @@
 import { FormEvent, useEffect, useState } from 'react'
-import { ArrowDownLeft, ArrowUpRight, ClipboardList, PackageSearch, Plus, RotateCcw, Warehouse } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, ClipboardList, PackageSearch, Plus, RotateCcw, Search, ShoppingBag, Warehouse } from 'lucide-react'
 import { api, errorMessage } from '../api'
 import { EmptyState, ErrorMessage, Loading } from '../components/Feedback'
 import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
 import { useAuth } from '../App'
-import type { InventoryMovement, Product } from '../types'
-import { dateTime } from '../utils'
+import type { InventoryMovement, Product, Sale } from '../types'
+import { currency, dateTime, formatCustomerDocument } from '../utils'
 import { useRealtimeRefresh } from '../useRealtimeRefresh'
 import './inventory.css'
 
 const movementLabel: Record<string, string> = { sale: 'Venta', entry: 'Ingreso', adjustment: 'Ajuste', initial: 'Stock inicial' }
 
-type InventorySection = 'stock' | 'movements'
+type InventorySection = 'sales' | 'stock' | 'movements'
 
 export default function InventoryPage() {
   const { user } = useAuth()
   const canAdjustInventory = user?.role === 'admin' || user?.role === 'warehouse'
-  const [section, setSection] = useState<InventorySection>('stock')
+  const [section, setSection] = useState<InventorySection>('sales')
   const [products, setProducts] = useState<Product[]>([])
   const [movements, setMovements] = useState<InventoryMovement[]>([])
+  const [sales, setSales] = useState<Sale[]>([])
+  const [salesSearch, setSalesSearch] = useState('')
+  const [salesLoading, setSalesLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<Product | null>(null)
@@ -34,8 +37,15 @@ export default function InventoryPage() {
       setProducts(productResponse.data); setMovements(movementResponse.data); setError('')
     } catch (cause) { setError(errorMessage(cause)) } finally { setLoading(false) }
   }
+  async function loadSales(search = salesSearch) {
+    setSalesLoading(true)
+    try {
+      const { data } = await api.get<Sale[]>('/sales', { params: { search } })
+      setSales(data); setError('')
+    } catch (cause) { setError(errorMessage(cause)) } finally { setSalesLoading(false) }
+  }
   useEffect(() => { void load() }, [])
-  useRealtimeRefresh(load)
+  useRealtimeRefresh(() => { void load(); void loadSales() })
 
   async function adjust(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -50,13 +60,17 @@ export default function InventoryPage() {
   const lowStock = products.filter((product) => product.stock <= product.min_stock).length
 
   return <>
-    <PageHeader eyebrow="CONTROL DE EXISTENCIAS" title="Inventario" description="Revisa tus existencias, identifica alertas y conserva la trazabilidad de cada movimiento." />
+    <PageHeader eyebrow="INVENTARIO Y OPERACIÓN COMERCIAL" title="Inventario" description="Consulta las ventas realizadas y conserva el control de existencias y movimientos." />
     {error && <ErrorMessage message={error} />}
     <div className="inventory-overview"><div className="inventory-overview-card"><span className="inventory-overview-icon"><PackageSearch size={19} /></span><div><small>Productos en catálogo</small><strong>{products.length}</strong></div></div><div className="inventory-overview-card"><span className="inventory-overview-icon inventory-warning"><RotateCcw size={18} /></span><div><small>Alertas de stock bajo</small><strong>{lowStock}</strong></div></div><div className="inventory-overview-card"><span className="inventory-overview-icon inventory-history"><ClipboardList size={18} /></span><div><small>Movimientos recientes</small><strong>{movements.length}</strong></div></div></div>
     <div className="inventory-sections" role="tablist" aria-label="Secciones de inventario">
+      <button className={`inventory-section-tab ${section === 'sales' ? 'active' : ''}`} role="tab" aria-selected={section === 'sales'} onClick={() => { setSection('sales'); void loadSales() }}><ShoppingBag size={14} /> Historial de ventas</button>
       <button className={`inventory-section-tab ${section === 'stock' ? 'active' : ''}`} role="tab" aria-selected={section === 'stock'} onClick={() => setSection('stock')}><Warehouse size={14} /> Existencias</button>
       <button className={`inventory-section-tab ${section === 'movements' ? 'active' : ''}`} role="tab" aria-selected={section === 'movements'} onClick={() => setSection('movements')}><ClipboardList size={14} /> Movimientos</button>
     </div>
+    {section === 'sales' && <section className="panel table-panel"><div className="table-toolbar"><div className="table-heading"><div className="table-icon sales-icon"><ShoppingBag size={18} /></div><div><strong>Historial de ventas</strong><span>{sales.length} operaciones encontradas</span></div></div><label className="search-field"><Search size={16} /><input value={salesSearch} onChange={(event) => { setSalesSearch(event.target.value); void loadSales(event.target.value) }} placeholder="Buscar orden, cliente, RUC o vendedor…" /></label></div>
+      {salesLoading ? <Loading /> : sales.length ? <div className="table-scroll"><table><thead><tr><th>N.º DE ORDEN</th><th>FECHA Y HORA</th><th>CLIENTE</th><th>GENERADA POR</th><th>ARTÍCULOS</th><th>PAGO</th><th>TOTAL</th></tr></thead><tbody>{sales.map((sale) => <tr key={sale.id}><td><span className="sale-number">{sale.sale_number}</span></td><td>{dateTime(sale.created_at)}</td><td><div className="simple-cell"><strong>{sale.customer?.name || 'Venta mostrador'}</strong><small>{sale.customer?.document_number ? formatCustomerDocument(sale.customer.document_number) : sale.customer?.email || 'Cliente no identificado'}</small></div></td><td>{sale.created_by?.full_name || 'Usuario no disponible'}</td><td><span className="items-count">{sale.items.reduce((sum, item) => sum + item.quantity, 0)} artículos</span></td><td><span className="category-chip payment-chip">{sale.payments[0]?.method || '—'}</span></td><td><strong className="price-value">{currency(sale.total)}</strong></td></tr>)}</tbody></table></div> : <EmptyState title="No hay ventas para mostrar" description="Las ventas que registres aparecerán aquí junto con su orden, cliente e importe." />}
+    </section>}
     {section === 'stock' && <section className="panel table-panel"><div className="table-toolbar"><div className="table-heading"><div className="table-icon inventory-icon"><PackageSearch size={18} /></div><div><strong>Existencias actuales</strong><span>{canAdjustInventory ? 'Ajusta stock para registrar ingresos o correcciones' : 'Consulta niveles y movimientos de existencias'}</span></div></div><span className="period-chip"><span /> Inventario actualizado</span></div>
       {loading ? <Loading /> : products.length ? <div className="table-scroll"><table><thead><tr><th>PRODUCTO</th><th>CATEGORÍA</th><th>STOCK ACTUAL</th><th>STOCK MÍNIMO</th><th>NIVEL</th>{canAdjustInventory && <th>ACCIÓN</th>}</tr></thead><tbody>{products.map((product) => <tr key={product.id}><td><div className="product-cell"><span className="product-avatar"><PackageSearch size={17} /></span><div><strong>{product.name}</strong><small>{product.sku}</small></div></div></td><td><span className="category-chip">{product.category?.name || 'Sin categoría'}</span></td><td><strong className={product.stock <= product.min_stock ? 'stock-value-low' : 'stock-value'}>{product.stock} u.</strong></td><td>{product.min_stock} u.</td><td><span className={`status-pill ${product.stock <= product.min_stock ? 'status-low' : 'status-active'}`}><i />{product.stock <= product.min_stock ? 'Reponer' : 'Saludable'}</span></td>{canAdjustInventory && <td><button className="button button-small button-secondary" onClick={() => { setSelected(product); setQuantity(''); setNote('') }}><Plus size={14} /> Ajustar</button></td>}</tr>)}</tbody></table></div> : <EmptyState title="No hay productos" description="Agrega productos para comenzar a gestionar las existencias." />}
     </section>}

@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Customer, Payment, Product, Sale, SaleItem
+from app.models import Customer, Payment, Product, Sale, SaleItem, User
 
 
 def calculate_statistics(values: list[float], threshold: float | None = None) -> dict[str, Any]:
@@ -119,6 +119,19 @@ def analytics_dashboard(db: Session, company_id: int, start_date: date, end_date
         .group_by(Payment.method)
         .order_by(func.sum(Payment.amount).desc())
     ).all()
+    seller_rows = db.execute(
+        select(User.id, User.full_name, func.count(Sale.id), func.sum(Sale.total))
+        .join(Sale, Sale.created_by_id == User.id)
+        .where(
+            Sale.company_id == company_id,
+            User.company_id == company_id,
+            Sale.status == "completed",
+            Sale.created_at >= start_at,
+            Sale.created_at < end_at,
+        )
+        .group_by(User.id, User.full_name)
+        .order_by(func.sum(Sale.total).desc())
+    ).all()
 
     revenue_value = float(revenue)
     previous_value = float(previous_revenue)
@@ -142,6 +155,13 @@ def analytics_dashboard(db: Session, company_id: int, start_date: date, end_date
         "payment_methods": [
             {"method": method, "amount": float(amount)} for method, amount in payment_rows
         ],
+        "sales_by_seller": [{
+            "user_id": user_id,
+            "seller_name": name,
+            "sales_count": int(count),
+            "revenue": float(total),
+            "average_ticket": float(total) / count if count else 0.0,
+        } for user_id, name, count, total in seller_rows],
     }
 
 

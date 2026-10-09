@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.deps import get_current_user
@@ -17,7 +17,9 @@ def summary(db: Session = Depends(get_db), user: User = Depends(get_current_user
     now = datetime.now(timezone.utc)
     start_today = datetime.combine(now.date(), time.min, tzinfo=timezone.utc)
     start_month = start_today.replace(day=1)
-    sales_query = select(Sale).where(Sale.company_id == user.company_id, Sale.status == "completed")
+    sales_query = select(Sale).options(joinedload(Sale.created_by)).where(
+        Sale.company_id == user.company_id, Sale.status == "completed"
+    )
     total_revenue = db.scalar(select(func.coalesce(func.sum(Sale.total), 0)).where(
         Sale.company_id == user.company_id, Sale.status == "completed"
     )) or Decimal("0")
@@ -58,5 +60,6 @@ def summary(db: Session = Depends(get_db), user: User = Depends(get_current_user
         "recent_sales": [{
             "id": sale.id, "sale_number": sale.sale_number, "total": float(sale.total),
             "status": sale.status, "created_at": sale.created_at.isoformat(),
+            "created_by": sale.created_by.full_name if sale.created_by else None,
         } for sale in recent_sales],
     }
