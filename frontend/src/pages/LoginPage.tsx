@@ -31,19 +31,6 @@ export default function LoginPage() {
     await authenticate(dni, password)
   }
 
-  async function demoLogin() {
-    setLoading(true)
-    setError('')
-    try {
-      const { data } = await api.post<LoginResponse>('/auth/demo')
-      signIn(data.access_token, data.user)
-    } catch (cause) {
-      setError(errorMessage(cause))
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
     <div className="login-screen">
       <section className="login-story">
@@ -58,7 +45,6 @@ export default function LoginPage() {
           <div className="password-label"><label htmlFor="password">Contraseña</label><span>Acceso seguro</span></div><div className="input-with-icon"><LockKeyhole size={17} /><input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></div>
           {error && <div className="login-error">{error}</div>}
           <button className="button button-primary login-submit" disabled={loading}>{loading ? 'Ingresando…' : <>Entrar a mi espacio <ArrowRight size={17} /></>}</button>
-          {import.meta.env.DEV && <button className="button button-secondary login-submit" type="button" disabled={loading} onClick={() => void demoLogin()}>{loading ? 'Ingresando…' : 'Acceso temporal de administrador'}</button>}
         </form>
         <div className="login-copyright">© 2026 SalesIA Enterprise <span>•</span> Proyecto académico SENATI</div>
       </div></section>
