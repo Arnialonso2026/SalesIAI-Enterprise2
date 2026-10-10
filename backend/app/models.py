@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, JSON, Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -40,6 +40,7 @@ class AuditLog(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True, nullable=False)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True, nullable=True)
+    actor_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
     action: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
     entity_type: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
     entity_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -60,6 +61,23 @@ class Document(Base):
     mime_type: Mapped[str] = mapped_column(String(120), nullable=False)
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+
+
+class Branch(Base):
+    __tablename__ = "branches"
+    __table_args__ = (
+        UniqueConstraint("company_id", "name", name="uq_branches_company_name"),
+        CheckConstraint("latitude >= -18.5 AND latitude <= 0.2", name="ck_branches_peru_latitude"),
+        CheckConstraint("longitude >= -81.5 AND longitude <= -68.5", name="ck_branches_peru_longitude"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    latitude: Mapped[Decimal] = mapped_column(Numeric(9, 6), nullable=False)
+    longitude: Mapped[Decimal] = mapped_column(Numeric(9, 6), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class Customer(Base):
@@ -132,6 +150,9 @@ class Sale(Base):
     created_by: Mapped[User | None] = relationship(foreign_keys=[created_by_id])
     items: Mapped[list["SaleItem"]] = relationship(back_populates="sale", cascade="all, delete-orphan")
     payments: Mapped[list["Payment"]] = relationship(back_populates="sale", cascade="all, delete-orphan")
+    document: Mapped["SalesDocument | None"] = relationship(
+        back_populates="sale", cascade="all, delete-orphan", uselist=False
+    )
 
 
 class SaleItem(Base):
@@ -157,12 +178,77 @@ class Payment(Base):
     sale: Mapped[Sale] = relationship(back_populates="payments")
 
 
+class SalesDocument(Base):
+    __tablename__ = "sales_documents"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True)
+    sale_id: Mapped[int] = mapped_column(ForeignKey("sales.id", ondelete="CASCADE"), unique=True, index=True)
+    document_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    document_number: Mapped[str] = mapped_column(String(30), unique=True, nullable=False, index=True)
+    customer_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    customer_document: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    customer_address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    customer_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    customer_phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    currency: Mapped[str] = mapped_column(String(3), default="PEN", nullable=False)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    discount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    tax: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    sale: Mapped[Sale] = relationship(back_populates="document")
+    items: Mapped[list["SalesDocumentItem"]] = relationship(
+        back_populates="document", cascade="all, delete-orphan"
+    )
+
+
+class SalesDocumentItem(Base):
+    __tablename__ = "sales_document_items"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    document_id: Mapped[int] = mapped_column(ForeignKey("sales_documents.id", ondelete="CASCADE"), index=True)
+    product_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    line_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    document: Mapped[SalesDocument] = relationship(back_populates="items")
+
+
+class Purchase(Base):
+    __tablename__ = "purchases"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    purchase_number: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    supplier_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    supplier_document_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    supplier_address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_by_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    items: Mapped[list["PurchaseItem"]] = relationship(back_populates="purchase", cascade="all, delete-orphan")
+
+
+class PurchaseItem(Base):
+    __tablename__ = "purchase_items"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    purchase_id: Mapped[int] = mapped_column(ForeignKey("purchases.id", ondelete="CASCADE"), index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), index=True)
+    product_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    product_sku: Mapped[str] = mapped_column(String(40), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    unit_cost: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    line_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    purchase: Mapped[Purchase] = relationship(back_populates="items")
+
+
 class InventoryMovement(Base):
     __tablename__ = "inventory_movements"
     id: Mapped[int] = mapped_column(primary_key=True)
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), index=True)
     sale_id: Mapped[int | None] = mapped_column(ForeignKey("sales.id"), nullable=True)
+    purchase_id: Mapped[int | None] = mapped_column(ForeignKey("purchases.id"), nullable=True, index=True)
     movement_type: Mapped[str] = mapped_column(String(20), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     stock_after: Mapped[int] = mapped_column(Integer, nullable=False)

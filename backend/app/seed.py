@@ -64,11 +64,14 @@ def seed_demo_data() -> None:
                 ))
 
         customers = [
-            ("María Fernández", "maria.fernandez@example.com", "+51 987 654 321", "DNI-45892316"),
-            ("Carlos Mendoza", "carlos.mendoza@example.com", "+51 976 123 450", "DNI-71420583"),
-            ("Empresa Andina SAC", "compras@andina.example.com", "+51 1 555 0101", "RUC-20601234567"),
+            ("María Fernández", "maria.fernandez@example.com", "+51 987 654 321", "45892316", "individual"),
+            ("Carlos Mendoza", "carlos.mendoza@example.com", "+51 976 123 450", "71420583", "individual"),
+            ("Empresa Andina SAC", "compras@andina.example.com", "+51 1 555 0101", "20601234567", "business"),
         ]
-        for name, email, phone, document in customers:
+        for name, email, phone, document, customer_type in customers:
             if db.scalar(select(Customer).where(Customer.company_id == company.id, Customer.email == email)) is None:
-                db.add(Customer(company_id=company.id, name=name, email=email, phone=phone, document_number=document))
+                db.add(Customer(
+                    company_id=company.id, name=name, email=email, phone=phone,
+                    document_number=document, customer_type=customer_type,
+                ))
         db.commit()

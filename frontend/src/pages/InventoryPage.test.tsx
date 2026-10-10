@@ -105,6 +105,7 @@ describe('InventoryPage product control', () => {
       id: index + 1,
       product_id: 1,
       sale_id: index === 0 ? 44 : null,
+      purchase_id: null,
       movement_type: index === 0 ? 'sale' : 'entry',
       quantity: index === 0 ? -1 : 1,
       stock_after: 10 - index,
@@ -124,5 +125,39 @@ describe('InventoryPage product control', () => {
     expect(screen.getByText('1 de 10 movimientos')).toBeInTheDocument()
     expect(screen.getByText(/Movimiento 1/)).toBeInTheDocument()
     expect(screen.queryByText(/Movimiento 2/)).not.toBeInTheDocument()
+  })
+
+  it('permite cargar páginas anteriores del historial de movimientos', async () => {
+    const allMovements = Array.from({ length: 105 }, (_, index) => ({
+      id: index + 1,
+      product_id: 1,
+      sale_id: null,
+      purchase_id: null,
+      movement_type: 'entry',
+      quantity: 1,
+      stock_after: index + 1,
+      note: `Movimiento ${index + 1}`,
+      created_at: '2026-10-09T12:00:00Z',
+    }))
+    mocks.get.mockImplementation((path: string, config?: { params?: { offset?: number; limit?: number } }) => {
+      if (path === '/products') return Promise.resolve({ data: mocks.products })
+      if (path === '/inventory/movements') {
+        const offset = config?.params?.offset ?? 0
+        const limit = config?.params?.limit ?? 100
+        return Promise.resolve({ data: allMovements.slice(offset, offset + limit) })
+      }
+      return Promise.resolve({ data: [] })
+    })
+    const user = userEvent.setup()
+    render(<InventoryPage />)
+
+    await user.click(await screen.findByRole('tab', { name: /control de productos/i }))
+    await user.click(await screen.findByRole('button', { name: /ver todos los movimientos/i }))
+
+    expect(await screen.findByText('100 de 100 movimientos')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cargar movimientos anteriores' }))
+    expect(await screen.findByText(/Movimiento 105/)).toBeInTheDocument()
+    expect(screen.getByText('105 de 105 movimientos')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cargar movimientos anteriores' })).not.toBeInTheDocument()
   })
 })

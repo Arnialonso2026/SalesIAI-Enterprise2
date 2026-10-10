@@ -30,11 +30,17 @@ from app.schemas import (
     BayesianAnalysisIn,
     InsightOut,
     InsightStatusIn,
+    LinearAnalysisIn,
     ReportExportIn,
     ReportOut,
     StatisticalAnalysisIn,
 )
-from app.services.analytics import analytics_dashboard, calculate_statistics, insight_candidates
+from app.services.analytics import (
+    analytics_dashboard,
+    calculate_bivariate_statistics,
+    calculate_statistics,
+    insight_candidates,
+)
 
 router = APIRouter(prefix="/analytics", tags=["Analítica"])
 analytics_user = require_roles("analyst", "manager")
@@ -111,6 +117,85 @@ def create_statistical_analysis(
     ))
     db.commit()
     return {"id": analysis.id, "dataset_id": dataset.id, "name": analysis.name, "results": results}
+
+
+@router.post("/statistics/linear", status_code=status.HTTP_201_CREATED)
+def create_linear_analysis(
+    payload: LinearAnalysisIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(analytics_user),
+) -> dict[str, object]:
+    results = calculate_bivariate_statistics(payload.values_x, payload.values_y)
+    dataset = AnalyticsDataset(
+        company_id=user.company_id,
+        name=f"Análisis: {payload.name}",
+        description="Dataset de dos variables para correlación y álgebra vectorial.",
+        source_type="manual",
+        created_by_id=user.id,
+    )
+    db.add(dataset)
+    db.flush()
+
+    variable_x = DatasetVariable(
+        dataset_id=dataset.id,
+        name=payload.variable_x,
+        display_name=payload.variable_x,
+        data_type="numeric",
+        variable_role="measure",
+        position=0,
+    )
+    variable_y = DatasetVariable(
+        dataset_id=dataset.id,
+        name=payload.variable_y,
+        display_name=payload.variable_y,
+        data_type="numeric",
+        variable_role="measure",
+        position=1,
+    )
+    db.add_all([variable_x, variable_y])
+    db.flush()
+
+    db.add_all([
+        DatasetObservation(
+            dataset_id=dataset.id,
+            observation_data={"x": value_x, "y": value_y},
+        )
+        for value_x, value_y in zip(payload.values_x, payload.values_y)
+    ])
+    analysis = StatisticalAnalysis(
+        company_id=user.company_id,
+        dataset_id=dataset.id,
+        name=payload.name,
+        analysis_type="linear_algebra",
+        status="completed",
+        parameters={
+            "variable_x": payload.variable_x,
+            "variable_y": payload.variable_y,
+            "count": len(payload.values_x),
+        },
+        created_by_id=user.id,
+    )
+    db.add(analysis)
+    db.flush()
+    db.add_all([
+        AnalysisVariable(analysis_id=analysis.id, variable_id=variable_x.id, analysis_role="input"),
+        AnalysisVariable(analysis_id=analysis.id, variable_id=variable_y.id, analysis_role="input"),
+        StatisticalResult(
+            analysis_id=analysis.id,
+            variable_id=None,
+            metric="bivariate_and_vector_analysis",
+            result=results,
+        ),
+    ])
+    db.commit()
+    return {
+        "id": analysis.id,
+        "dataset_id": dataset.id,
+        "name": analysis.name,
+        "variable_x": payload.variable_x,
+        "variable_y": payload.variable_y,
+        "results": results,
+    }
 
 
 @router.get("/statistics")

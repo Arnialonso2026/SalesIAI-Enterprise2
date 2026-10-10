@@ -15,9 +15,11 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const CustomersPage = lazy(() => import('./pages/CustomersPage'))
 const ProductsPage = lazy(() => import('./pages/ProductsPage'))
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage'))
-const SalesPage = lazy(() => import('./pages/SalesPage'))
+const PaymentReceiptsPage = lazy(() => import('./pages/PaymentReceiptsPage'))
+const AccountsReceivablePage = lazy(() => import('./pages/AccountsReceivablePage'))
 const NewSalePage = lazy(() => import('./pages/NewSalePage'))
 const InventoryPage = lazy(() => import('./pages/InventoryPage'))
+const BranchesPage = lazy(() => import('./pages/BranchesPage'))
 const UsersPage = lazy(() => import('./pages/UsersPage'))
 const AuditPage = lazy(() => import('./pages/AuditPage'))
 const DocumentationPage = lazy(() => import('./pages/DocumentationPage'))
@@ -111,8 +113,9 @@ export default function App() {
       if (event.resource === undefined || event.operation === undefined || event.status_code === undefined) return
       const resourceLabels: Record<string, string> = {
         users: 'Usuarios', customers: 'Clientes', products: 'Productos', categories: 'Categorías',
-        sales: 'Ventas', inventory: 'Inventario', documents: 'Documentación', audit: 'Auditoría',
-        analytics: 'Analítica', dashboard: 'Panel',
+        sales: 'Ventas',
+        inventory: 'Inventario', documents: 'Documentación', audit: 'Auditoría',
+        analytics: 'Analítica', dashboard: 'Panel', branches: 'Sucursales',
       }
       const operationLabels: Record<string, string> = {
         post: 'se agregó', put: 'se actualizó', patch: 'se modificó', delete: 'se eliminó',
@@ -212,7 +215,9 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/clientes" element={<CustomersPage />} />
             <Route path="/productos" element={<ProductsPage />} />
-            <Route path="/ventas" element={<SalesPage />} />
+            <Route path="/ventas" element={<Navigate to="/cuentas-cobrar" replace />} />
+            <Route path="/comprobantes-pago" element={<PaymentReceiptsPage />} />
+            <Route path="/cuentas-cobrar" element={<AccountsReceivablePage />} />
             <Route path="/inventario" element={<InventoryPage />} />
           </Route>
           <Route element={<RoleLayout allowed={['admin', 'manager', 'analyst']} />}>
@@ -225,6 +230,7 @@ export default function App() {
             <Route path="/categorias" element={<CategoriesPage />} />
           </Route>
           <Route element={<AdminLayout />}>
+            <Route path="/sucursales" element={<BranchesPage />} />
             <Route path="/usuarios" element={<UsersPage />} />
             <Route path="/usuarios/auditoria" element={<AuditPage />} />
             <Route path="/usuarios/documentacion" element={<DocumentationPage />} />

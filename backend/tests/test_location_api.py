@@ -8,7 +8,7 @@ from starlette.requests import Request
 from app.core.proxy import TrustedProxyMiddleware, is_trusted_proxy, parse_trusted_proxy_hosts
 from app.database import Base, engine, SessionLocal
 from app.main import app
-from app.models import AuditLog, User
+from app.models import AuditLog, Company, User
 
 
 def test_trusted_proxy_uses_forwarded_ip() -> None:
@@ -74,9 +74,20 @@ def test_audit_location_and_ip_registry_contracts(monkeypatch) -> None:
         assert login.status_code == 200, login.text
         headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
         with SessionLocal() as db:
+            other_company = Company(name="Otra compañía")
+            db.add(other_company)
+            db.flush()
+            db.add(AuditLog(
+                company_id=other_company.id,
+                user_id=None,
+                action="other_company_event",
+                entity_type="sale",
+                details={"source": "isolation-test"},
+            ))
             db.add(AuditLog(
                 company_id=1,
                 user_id=1,
+                actor_name="Administrador Demo",
                 action="login_success",
                 entity_type="user",
                 entity_id=1,
@@ -85,6 +96,25 @@ def test_audit_location_and_ip_registry_contracts(monkeypatch) -> None:
                 user_agent="SalesIA test",
             ))
             db.commit()
+
+        audit_page = client.get("/api/v1/audit/logs?limit=1&offset=0", headers=headers)
+        assert audit_page.status_code == 200, audit_page.text
+        assert audit_page.json()["total"] == 2
+        assert len(audit_page.json()["items"]) == 1
+        assert audit_page.json()["items"][0]["actor_name"] in {"Administrador Demo", "Administrador"}
+
+        filtered = client.get(
+            "/api/v1/audit/logs?action=login_success&entity_type=user&user_id=1",
+            headers=headers,
+        )
+        assert filtered.status_code == 200, filtered.text
+        assert filtered.json()["total"] == 1
+        assert filtered.json()["items"][0]["actor_name"] == "Administrador Demo"
+        invalid_dates = client.get(
+            "/api/v1/audit/logs?start_at=2026-01-02T00:00:00Z&end_before=2026-01-01T00:00:00Z",
+            headers=headers,
+        )
+        assert invalid_dates.status_code == 422
 
         location = client.get(
             "/api/v1/audit/location",
@@ -108,6 +138,25 @@ def test_audit_location_and_ip_registry_contracts(monkeypatch) -> None:
         assert registry.json()[0]["action_count"] == 1
         assert registry.json()[0]["last_seen"]
         assert registry.json()[0]["users"] == [1]
+
+        created_customer = client.post(
+            "/api/v1/customers",
+            headers=headers,
+            json={"name": "Cliente de auditoría", "document_number": "12345678"},
+        )
+        assert created_customer.status_code == 201, created_customer.text
+        customer_events = client.get(
+            "/api/v1/audit/logs?entity_type=customer&action=create",
+            headers=headers,
+        ).json()
+        assert customer_events["total"] == 1
+        event = customer_events["items"][0]
+        assert event["actor_name"]
+        assert event["details"] == {
+            "method": "POST",
+            "path": "/api/v1/customers",
+            "status_code": 201,
+        }
 
         with SessionLocal() as db:
             user = db.query(AuditLog).filter_by(ip_address="203.0.113.10").one().user_id

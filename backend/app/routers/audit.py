@@ -1,14 +1,15 @@
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Request
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import require_roles
 from app.models import AuditLog, User
-from app.schemas import AuditLogOut, IpRegistryOut, LocationOut
+from app.schemas import AuditLogPageOut, IpRegistryOut, LocationOut
 from app.services.location import resolve_ip_location
 
 router = APIRouter(prefix="/audit", tags=["Auditoría"])
@@ -18,17 +19,44 @@ def get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-@router.get("/logs", response_model=list[AuditLogOut])
+@router.get("/logs", response_model=AuditLogPageOut)
 def list_audit_logs(
+    action: str | None = Query(default=None, min_length=1, max_length=40),
+    entity_type: str | None = Query(default=None, min_length=1, max_length=60),
+    user_id: int | None = Query(default=None, ge=1),
+    start_at: datetime | None = None,
+    end_before: datetime | None = None,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
     user: User = Depends(require_roles("admin")),
-) -> list[AuditLog]:
-    return list(db.scalars(
+) -> AuditLogPageOut:
+    if (start_at and start_at.tzinfo is None) or (end_before and end_before.tzinfo is None):
+        raise HTTPException(status_code=422, detail="Las fechas deben incluir zona horaria.")
+    if start_at and end_before and start_at >= end_before:
+        raise HTTPException(status_code=422, detail="La fecha inicial debe ser anterior a la fecha final.")
+
+    filters = [AuditLog.company_id == user.company_id]
+    if action:
+        filters.append(AuditLog.action == action)
+    if entity_type:
+        filters.append(AuditLog.entity_type == entity_type)
+    if user_id is not None:
+        filters.append(AuditLog.user_id == user_id)
+    if start_at:
+        filters.append(AuditLog.created_at >= start_at.astimezone(timezone.utc))
+    if end_before:
+        filters.append(AuditLog.created_at < end_before.astimezone(timezone.utc))
+
+    total = db.scalar(select(func.count(AuditLog.id)).where(*filters)) or 0
+    items = list(db.scalars(
         select(AuditLog)
-        .where(AuditLog.company_id == user.company_id)
+        .where(*filters)
         .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
-        .limit(200)
+        .offset(offset)
+        .limit(limit)
     ).all())
+    return AuditLogPageOut(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/location", response_model=LocationOut)

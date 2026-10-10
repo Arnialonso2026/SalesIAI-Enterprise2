@@ -24,7 +24,18 @@ def summary(db: Session = Depends(get_db), user: User = Depends(get_current_user
         Sale.company_id == user.company_id, Sale.status == "completed"
     )) or Decimal("0")
     month_revenue = db.scalar(select(func.coalesce(func.sum(Sale.total), 0)).where(
-        Sale.company_id == user.company_id, Sale.status == "completed", Sale.created_at >= start_month
+        Sale.company_id == user.company_id,
+        Sale.status == "completed",
+        Sale.created_at >= start_month,
+        Sale.created_at <= now,
+    )) or Decimal("0")
+    elapsed_days = (now.date() - start_month.date()).days + 1
+    previous_period_start = start_month - timedelta(days=elapsed_days)
+    previous_period_revenue = db.scalar(select(func.coalesce(func.sum(Sale.total), 0)).where(
+        Sale.company_id == user.company_id,
+        Sale.status == "completed",
+        Sale.created_at >= previous_period_start,
+        Sale.created_at < start_month,
     )) or Decimal("0")
     today_count = db.scalar(select(func.count(Sale.id)).where(
         Sale.company_id == user.company_id, Sale.status == "completed", Sale.created_at >= start_today
@@ -49,6 +60,11 @@ def summary(db: Session = Depends(get_db), user: User = Depends(get_current_user
     return {
         "total_revenue": float(total_revenue),
         "month_revenue": float(month_revenue),
+        "previous_period_revenue": float(previous_period_revenue),
+        "month_revenue_change_percent": (
+            (float(month_revenue) - float(previous_period_revenue)) / float(previous_period_revenue) * 100
+            if previous_period_revenue else None
+        ),
         "today_sales": today_count,
         "sales_count": sales_count,
         "customers_count": customers_count,

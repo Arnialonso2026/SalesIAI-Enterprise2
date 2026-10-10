@@ -4,9 +4,10 @@ import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, Ref
 import { api, errorMessage } from '../api'
 import { ErrorMessage, Loading } from '../components/Feedback'
 import PageHeader from '../components/PageHeader'
-import type { AnalyticsDashboard, AnalyticsReport, BayesianAnalysis, Insight, StatisticalAnalysis, StatisticalCalculation } from '../types'
+import type { AnalyticsDashboard, AnalyticsReport, BayesianAnalysis, Insight, LinearAnalysisCalculation, StatisticalAnalysis, StatisticalCalculation } from '../types'
 import { currency, dateShort, dateTime } from '../utils'
 import './analytics.css'
+import './analytics-linear.css'
 import { useRealtimeRefresh } from '../useRealtimeRefresh'
 
 type AnalyticsTab = 'dashboard' | 'statistics' | 'variation' | 'insights' | 'reports'
@@ -43,11 +44,17 @@ export default function AnalyticsPage() {
   const [insights, setInsights] = useState<Insight[]>([])
   const [reports, setReports] = useState<AnalyticsReport[]>([])
   const [calculation, setCalculation] = useState<StatisticalCalculation | null>(null)
+  const [linearCalculation, setLinearCalculation] = useState<LinearAnalysisCalculation | null>(null)
   const [bayesianResult, setBayesianResult] = useState<{ posterior_probability: number; evidence_probability: number } | null>(null)
   const [analysisName, setAnalysisName] = useState('Análisis de ventas')
   const [variableName, setVariableName] = useState('Ingresos')
   const [valuesText, setValuesText] = useState('120, 150, 180, 210, 240, 240, 300')
   const [threshold, setThreshold] = useState('200')
+  const [linearName, setLinearName] = useState('Relación entre ventas e ingresos')
+  const [variableX, setVariableX] = useState('Cantidad de ventas')
+  const [valuesXText, setValuesXText] = useState('1, 2, 3, 4, 5')
+  const [variableY, setVariableY] = useState('Ingresos')
+  const [valuesYText, setValuesYText] = useState('100, 200, 250, 400, 500')
   const [bayesName, setBayesName] = useState('Conversión de campaña')
   const [question, setQuestion] = useState('¿La campaña generó una compra?')
   const [prior, setPrior] = useState('0.25')
@@ -104,6 +111,39 @@ export default function AnalyticsPage() {
         threshold: threshold.trim() ? Number(threshold) : null,
       })
       setCalculation(data)
+      const history = await api.get<StatisticalAnalysis[]>('/analytics/statistics')
+      setStatistics(history.data)
+    } catch (cause) {
+      setError(errorMessage(cause))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function submitLinearAnalysis(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const parseValues = (text: string) => text.split(/[\s,;]+/).filter(Boolean).map(Number)
+    const valuesX = parseValues(valuesXText)
+    const valuesY = parseValues(valuesYText)
+    if (
+      valuesX.length < 2 ||
+      valuesX.length !== valuesY.length ||
+      [...valuesX, ...valuesY].some((value) => !Number.isFinite(value))
+    ) {
+      setError('Ingresa al menos dos pares de números finitos; ambas variables deben tener la misma cantidad de valores.')
+      return
+    }
+    setBusy('linear')
+    setError('')
+    try {
+      const { data } = await api.post<LinearAnalysisCalculation>('/analytics/statistics/linear', {
+        name: linearName,
+        variable_x: variableX,
+        values_x: valuesX,
+        variable_y: variableY,
+        values_y: valuesY,
+      })
+      setLinearCalculation(data)
       const history = await api.get<StatisticalAnalysis[]>('/analytics/statistics')
       setStatistics(history.data)
     } catch (cause) {
@@ -269,7 +309,29 @@ export default function AnalyticsPage() {
             <div className="analytics-stat-chart"><ResponsiveContainer width="100%" height="100"><BarChart data={statisticChartData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}><CartesianGrid strokeDasharray="3 5" vertical={false} stroke="var(--app-line)" /><XAxis dataKey="observation" axisLine={false} tickLine={false} tick={{ fill: '#8390a2', fontSize: 10 }} /><YAxis axisLine={false} tickLine={false} tick={{ fill: '#8390a2', fontSize: 9 }} width={42} /><Tooltip formatter={(value) => [Number(value), variableName || 'Valor']} labelFormatter={(label) => `Observación ${label}`} /><Bar dataKey="value" name={variableName || 'Valor'} fill="#2e83c4" radius={[3, 3, 0, 0]} barSize={24} /><ReferenceLine y={statisticMean ?? 0} stroke="#21a787" strokeDasharray="4 4" label={{ value: 'Media', fill: '#21a787', fontSize: 9, position: 'insideTopRight' }} /><ReferenceLine y={statisticMedian ?? 0} stroke="#d5963d" strokeDasharray="4 4" label={{ value: 'Mediana', fill: '#bd812d', fontSize: 9, position: 'insideBottomRight' }} />{threshold.trim() && Number.isFinite(Number(threshold)) && <ReferenceLine y={Number(threshold)} stroke="#d16b72" strokeDasharray="4 4" label={{ value: 'Umbral', fill: '#c45b63', fontSize: 9, position: 'insideTopLeft' }} />}</BarChart></ResponsiveContainer></div>
             <div className="analytics-stat-legend"><span><i className="mean-mark" />Media</span><span><i className="median-mark" />Mediana</span>{threshold.trim() && Number.isFinite(Number(threshold)) && <span><i className="threshold-mark" />Umbral</span>}</div>
           </div>}
-          <div className="analytics-history"><h3>Análisis recientes</h3>{statistics.slice(0, 5).map((item) => <div className="analytics-history-row" key={item.id}><span><strong>{item.name}</strong><small>{dateTime(item.created_at)}</small></span><span>Media: {Number(item.results.mean ?? 0).toFixed(2)}</span></div>)}{!statistics.length && <p className="analytics-muted">Aún no hay análisis guardados.</p>}</div>
+          <div className="analytics-history"><h3>Análisis recientes</h3>{statistics.slice(0, 5).map((item) => <div className="analytics-history-row" key={item.id}><span><strong>{item.name}</strong><small>{dateTime(item.created_at)}</small></span><span>{item.analysis_type === 'linear_algebra' ? `Pearson: ${item.results.pearson_correlation === null ? 'N/D' : Number(item.results.pearson_correlation).toFixed(2)}` : `Media: ${Number(item.results.mean ?? 0).toFixed(2)}`}</span></div>)}{!statistics.length && <p className="analytics-muted">Aún no hay análisis guardados.</p>}</div>
+          <div className="analytics-linear-analysis">
+            <div className="analytics-panel-heading"><div><span className="eyebrow">DOS VARIABLES</span><h2>Correlación y álgebra vectorial</h2><p>Analiza pares ordenados para medir relación lineal y operar vectores.</p></div><Sigma size={18} /></div>
+            <form className="analytics-form" onSubmit={submitLinearAnalysis}>
+              <label>Nombre del análisis<input value={linearName} onChange={(event) => setLinearName(event.target.value)} minLength={2} maxLength={160} required /></label>
+              <div className="analytics-linear-inputs">
+                <label>Variable X<input value={variableX} onChange={(event) => setVariableX(event.target.value)} maxLength={100} required /><textarea aria-label="Valores de variable X" value={valuesXText} onChange={(event) => setValuesXText(event.target.value)} rows={2} required /></label>
+                <label>Variable Y<input value={variableY} onChange={(event) => setVariableY(event.target.value)} maxLength={100} required /><textarea aria-label="Valores de variable Y" value={valuesYText} onChange={(event) => setValuesYText(event.target.value)} rows={2} required /></label>
+              </div>
+              <small className="analytics-muted">Introduce valores emparejados y en el mismo orden. El coeficiente de Pearson no implica causalidad.</small>
+              <button className="button button-primary" disabled={busy === 'linear'}>{busy === 'linear' ? <LoaderCircle size={16} className="analytics-spin" /> : <FlaskConical size={16} />} Calcular correlación y vectores</button>
+            </form>
+            {linearCalculation && <div className="analytics-linear-result" aria-live="polite">
+              <strong>{linearCalculation.name}</strong>
+              <div><span>Correlación de Pearson</span><b>{linearCalculation.results.pearson_correlation === null ? 'No definida (variable constante)' : linearCalculation.results.pearson_correlation.toFixed(4)}</b></div>
+              <div><span>Covarianza poblacional</span><b>{linearCalculation.results.covariance_population.toFixed(4)}</b></div>
+              <div><span>Regresión lineal (pendiente, intercepto)</span><b>{linearCalculation.results.linear_regression_slope === null ? 'No definida' : `${linearCalculation.results.linear_regression_slope.toFixed(4)}, ${Number(linearCalculation.results.linear_regression_intercept).toFixed(4)}`}</b></div>
+              <div><span>Producto punto</span><b>{linearCalculation.results.vector_dot_product.toFixed(4)}</b></div>
+              <div><span>Suma de vectores</span><b>[{linearCalculation.results.vector_sum.map((value) => value.toFixed(2)).join(', ')}]</b></div>
+              <div><span>Resta X − Y</span><b>[{linearCalculation.results.vector_difference.map((value) => value.toFixed(2)).join(', ')}]</b></div>
+              <div><span>Normas de X / Y</span><b>{linearCalculation.results.vector_x_norm.toFixed(4)} / {linearCalculation.results.vector_y_norm.toFixed(4)}</b></div>
+            </div>}
+          </div>
         </section>
         <section className="analytics-panel">
           <div className="analytics-panel-heading"><div><span className="eyebrow">PROBABILIDAD</span><h2>Teorema de Bayes</h2><p>Actualiza la probabilidad de una hipótesis ante una evidencia.</p></div><Sparkles size={18} /></div>

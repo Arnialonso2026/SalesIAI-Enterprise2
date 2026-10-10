@@ -29,6 +29,8 @@ describe('DashboardPage', () => {
       data: {
         total_revenue: 1250,
         month_revenue: 450,
+        previous_period_revenue: 360,
+        month_revenue_change_percent: 25,
         today_sales: 2,
         sales_count: 5,
         customers_count: 8,
@@ -46,6 +48,7 @@ describe('DashboardPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Resumen ejecutivo' })).toBeInTheDocument()
     expect(screen.getByText('Clientes activos')).toBeInTheDocument()
+    expect(screen.getByText('+25.0% vs. mismos días del periodo anterior')).toBeInTheDocument()
     expect(screen.getByText((_content, element) => (
       element?.tagName === 'P'
       && element.textContent?.replace(/\s+/g, ' ').trim() === 'Has registrado 5 ventas y generado S/ 1,250.00 en ingresos acumulados.'

@@ -3,7 +3,7 @@ from decimal import Decimal
 from math import isfinite
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 UserRole = Literal["admin", "manager", "seller", "analyst", "warehouse"]
 CustomerType = Literal["individual", "business"]
@@ -42,6 +42,7 @@ class AuditLogOut(ORMModel):
     id: int
     company_id: int
     user_id: int | None
+    actor_name: str | None
     action: str
     entity_type: str
     entity_id: int | None
@@ -49,6 +50,13 @@ class AuditLogOut(ORMModel):
     ip_address: str | None
     user_agent: str | None
     created_at: datetime
+
+
+class AuditLogPageOut(BaseModel):
+    items: list[AuditLogOut]
+    total: int
+    limit: int
+    offset: int
 
 
 class LocationOut(BaseModel):
@@ -59,6 +67,37 @@ class LocationOut(BaseModel):
     latitude: float
     longitude: float
     postal_code: str | None
+
+
+class BranchIn(BaseModel):
+    name: str = Field(min_length=2, max_length=160)
+    address: str | None = Field(default=None, max_length=255)
+    latitude: float = Field(ge=-18.5, le=0.2, allow_inf_nan=False)
+    longitude: float = Field(ge=-81.5, le=-68.5, allow_inf_nan=False)
+
+    @field_validator("name")
+    @classmethod
+    def normalize_branch_name(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) < 2:
+            raise ValueError("El nombre debe contener al menos 2 caracteres.")
+        return value
+
+    @field_validator("address")
+    @classmethod
+    def normalize_branch_address(cls, value: str | None) -> str | None:
+        return value.strip() or None if value is not None else None
+
+
+class BranchOut(ORMModel):
+    id: int
+    company_id: int
+    name: str
+    address: str | None
+    latitude: float
+    longitude: float
+    is_active: bool
+    created_at: datetime
 
 
 class IpRegistryOut(BaseModel):
@@ -135,6 +174,30 @@ class CustomerIn(BaseModel):
     preferred_contact_method: CustomerContactMethod = "whatsapp"
     notes: str | None = Field(default=None, max_length=1000)
 
+    @model_validator(mode="after")
+    def normalize_customer_document(self) -> "CustomerIn":
+        value = self.document_number
+        if value is None or not value.strip():
+            self.document_number = None
+            return self
+
+        normalized = value.strip().upper()
+        expected_prefix = "RUC" if self.customer_type == "business" else "DNI"
+        if normalized.startswith(("DNI", "RUC")):
+            prefix, separator, remainder = normalized.partition("-")
+            if not separator:
+                prefix, _, remainder = normalized.partition(" ")
+            if prefix != expected_prefix:
+                raise ValueError(f"El documento debe corresponder al tipo de cliente ({expected_prefix}).")
+            normalized = remainder.strip()
+
+        digits = normalized.replace(" ", "").replace("-", "")
+        expected_length = 11 if self.customer_type == "business" else 8
+        if not digits.isdigit() or len(digits) != expected_length:
+            raise ValueError(f"El {expected_prefix} debe contener exactamente {expected_length} dígitos.")
+        self.document_number = digits
+        return self
+
 
 class CustomerOut(ORMModel):
     id: int
@@ -186,9 +249,103 @@ class ProductOut(ORMModel):
     category: CategoryOut | None = None
 
 
+class PurchaseItemIn(BaseModel):
+    product_id: int = Field(gt=0)
+    quantity: int = Field(gt=0, le=10000)
+    unit_cost: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+
+
+class PurchaseIn(BaseModel):
+    supplier_name: str = Field(min_length=2, max_length=160)
+    supplier_document_number: str | None = Field(default=None, max_length=30)
+    supplier_address: str | None = Field(default=None, max_length=255)
+    items: list[PurchaseItemIn] = Field(min_length=1)
+    notes: str | None = Field(default=None, max_length=500)
+
+    @field_validator("supplier_name")
+    @classmethod
+    def normalize_supplier_name(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("supplier_document_number", "supplier_address")
+    @classmethod
+    def normalize_supplier_optional_text(cls, value: str | None) -> str | None:
+        return value.strip() or None if value is not None else None
+
+    @model_validator(mode="after")
+    def reject_duplicate_products(self) -> "PurchaseIn":
+        product_ids = [item.product_id for item in self.items]
+        if len(product_ids) != len(set(product_ids)):
+            raise ValueError("Cada producto debe aparecer una sola vez en la compra.")
+        return self
+
+
+class PurchaseItemOut(ORMModel):
+    id: int
+    product_id: int
+    product_name: str
+    product_sku: str
+    quantity: int
+    unit_cost: Decimal
+    line_total: Decimal
+
+
+class PurchaseOut(ORMModel):
+    id: int
+    purchase_number: str
+    supplier_name: str
+    supplier_document_number: str | None
+    supplier_address: str | None
+    created_by_id: int | None
+    created_by_name: str
+    total: Decimal
+    notes: str | None
+    created_at: datetime
+    items: list[PurchaseItemOut]
+
+
 class SaleItemIn(BaseModel):
     product_id: int
     quantity: int = Field(gt=0, le=10000)
+
+
+class SalesDocumentCustomerIn(BaseModel):
+    name: str = Field(min_length=2, max_length=160)
+    customer_type: CustomerType
+    document_number: str | None = Field(default=None, max_length=30)
+    address: str | None = Field(default=None, max_length=255)
+    email: EmailStr | None = None
+    phone: str | None = Field(default=None, max_length=40)
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("document_number", "address", "phone")
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
+        return value.strip() or None if value is not None else None
+
+    @field_validator("document_number")
+    @classmethod
+    def validate_document_number(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        digits = value.upper().replace("DNI", "").replace("RUC", "").replace("-", "").replace(" ", "")
+        if not digits.isdigit():
+            raise ValueError("El documento debe contener solo dígitos.")
+        return digits
+
+    @model_validator(mode="after")
+    def validate_document_for_customer_type(self) -> "SalesDocumentCustomerIn":
+        if self.document_number is None:
+            return self
+        expected_length = 11 if self.customer_type == "business" else 8
+        if len(self.document_number) != expected_length:
+            document_name = "RUC" if self.customer_type == "business" else "DNI"
+            raise ValueError(f"El {document_name} debe contener exactamente {expected_length} dígitos.")
+        return self
 
 
 class SaleIn(BaseModel):
@@ -196,7 +353,26 @@ class SaleIn(BaseModel):
     items: list[SaleItemIn] = Field(min_length=1)
     discount: Decimal = Field(default=Decimal("0.00"), ge=0, max_digits=12, decimal_places=2)
     payment_method: str = Field(default="cash", min_length=2, max_length=30)
+    payment_amount: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=2)
     notes: str | None = Field(default=None, max_length=500)
+    document_type: Literal["boleta", "factura"] | None = None
+    document_customer: SalesDocumentCustomerIn | None = None
+
+    @model_validator(mode="after")
+    def validate_document_request(self) -> "SaleIn":
+        if self.document_type is None:
+            if self.document_customer is not None:
+                raise ValueError("Selecciona el tipo de comprobante para los datos del cliente.")
+            return self
+        if self.document_customer is None:
+            raise ValueError("Completa los datos del cliente para generar el comprobante.")
+        if self.document_type == "factura" and (
+            self.document_customer.customer_type != "business"
+            or self.document_customer.document_number is None
+            or len(self.document_customer.document_number) != 11
+        ):
+            raise ValueError("La factura interna requiere una empresa con RUC válido de 11 dígitos.")
+        return self
 
 
 class SaleItemOut(ORMModel):
@@ -214,6 +390,42 @@ class PaymentOut(ORMModel):
     method: str
     status: str
     paid_at: datetime
+
+
+class SalesDocumentCreateIn(BaseModel):
+    document_type: Literal["boleta", "factura"]
+
+
+class SalesDocumentItemOut(ORMModel):
+    id: int
+    product_name: str
+    quantity: int
+    unit_price: Decimal
+    line_total: Decimal
+
+
+class SalesDocumentOut(ORMModel):
+    id: int
+    sale_id: int
+    document_type: Literal["boleta", "factura"]
+    document_number: str
+    customer_name: str
+    customer_document: str | None
+    customer_address: str | None
+    customer_email: str | None
+    customer_phone: str | None
+    currency: str
+    subtotal: Decimal
+    discount: Decimal
+    tax: Decimal
+    total: Decimal
+    issued_at: datetime
+    items: list[SalesDocumentItemOut]
+
+
+class PaymentReceiptListOut(SalesDocumentOut):
+    sale_number: str
+    sale_created_at: datetime
 
 
 class SaleCreatorOut(ORMModel):
@@ -237,6 +449,18 @@ class SaleOut(ORMModel):
     created_at: datetime
     items: list[SaleItemOut]
     payments: list[PaymentOut]
+    document: SalesDocumentOut | None = None
+
+
+class ReceivablePaymentIn(BaseModel):
+    amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    method: str = Field(min_length=2, max_length=30)
+
+
+class ReceivableOut(BaseModel):
+    sale: SaleOut
+    paid_amount: Decimal
+    balance: Decimal
 
 
 class InventoryAdjustmentIn(BaseModel):
@@ -255,6 +479,7 @@ class InventoryMovementOut(ORMModel):
     id: int
     product_id: int
     sale_id: int | None
+    purchase_id: int | None
     movement_type: str
     quantity: int
     stock_after: int
@@ -274,6 +499,22 @@ class StatisticalAnalysisIn(BaseModel):
         if any(not isfinite(value) for value in values):
             raise ValueError("Todos los valores deben ser números finitos.")
         return values
+
+
+class LinearAnalysisIn(BaseModel):
+    name: str = Field(min_length=2, max_length=160)
+    variable_x: str = Field(min_length=1, max_length=100)
+    values_x: list[float] = Field(min_length=2, max_length=10000)
+    variable_y: str = Field(min_length=1, max_length=100)
+    values_y: list[float] = Field(min_length=2, max_length=10000)
+
+    @model_validator(mode="after")
+    def validate_paired_values(self) -> "LinearAnalysisIn":
+        if len(self.values_x) != len(self.values_y):
+            raise ValueError("Las dos variables deben tener el mismo número de observaciones.")
+        if any(not isfinite(value) for value in self.values_x + self.values_y):
+            raise ValueError("Todos los valores deben ser números finitos.")
+        return self
 
 
 class BayesianAnalysisIn(BaseModel):

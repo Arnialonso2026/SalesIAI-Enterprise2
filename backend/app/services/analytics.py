@@ -36,6 +36,41 @@ def calculate_statistics(values: list[float], threshold: float | None = None) ->
     }
 
 
+def calculate_bivariate_statistics(
+    values_x: list[float],
+    values_y: list[float],
+) -> dict[str, Any]:
+    if len(values_x) != len(values_y) or len(values_x) < 2:
+        raise ValueError("Se requieren al menos dos pares de valores del mismo tamaño.")
+
+    count = len(values_x)
+    mean_x = fsum(values_x) / count
+    mean_y = fsum(values_y) / count
+    centered_products = [(x - mean_x) * (y - mean_y) for x, y in zip(values_x, values_y)]
+    variance_x = fsum((x - mean_x) ** 2 for x in values_x) / count
+    variance_y = fsum((y - mean_y) ** 2 for y in values_y) / count
+    covariance = fsum(centered_products) / count
+    correlation = (
+        covariance / sqrt(variance_x * variance_y)
+        if variance_x > 0 and variance_y > 0
+        else None
+    )
+    slope = covariance / variance_x if variance_x > 0 else None
+
+    return {
+        "count": count,
+        "covariance_population": covariance,
+        "pearson_correlation": correlation,
+        "linear_regression_slope": slope,
+        "linear_regression_intercept": mean_y - slope * mean_x if slope is not None else None,
+        "vector_dot_product": fsum(x * y for x, y in zip(values_x, values_y)),
+        "vector_sum": [x + y for x, y in zip(values_x, values_y)],
+        "vector_difference": [x - y for x, y in zip(values_x, values_y)],
+        "vector_x_norm": sqrt(fsum(x * x for x in values_x)),
+        "vector_y_norm": sqrt(fsum(y * y for y in values_y)),
+    }
+
+
 def _period_bounds(start_date: date, end_date: date) -> tuple[datetime, datetime]:
     return (
         datetime.combine(start_date, time.min, tzinfo=timezone.utc),

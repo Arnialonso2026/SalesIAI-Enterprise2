@@ -1,0 +1,54 @@
+.invoice-summary-row{display:grid;grid-template-columns:minmax(170px,220px) minmax(170px,220px) minmax(240px,1fr);gap:12px;margin-bottom:16px}
+.invoice-summary-card{display:flex;align-items:center;gap:11px;padding:13px 15px;border:1px solid var(--app-line,#e9edf4);border-radius:9px;background:var(--app-surface,#fff)}
+.invoice-summary-icon{display:grid;width:34px;height:34px;place-items:center;border-radius:8px;background:#edf3ff;color:#3477e7;font-size:13px;font-weight:700}
+.invoice-summary-icon-green{background:#e9f7f0;color:#16875d}
+.invoice-summary-card div{display:grid;gap:4px}
+.invoice-summary-card small{color:var(--app-muted,#8993a6);font-size:10px}
+.invoice-summary-card strong{color:var(--app-text,#17233b);font-size:15px}
+.invoice-search{display:flex;min-width:0;align-items:center;gap:9px;padding:0 12px;border:1px solid var(--app-line,#e9edf4);border-radius:8px;background:var(--app-surface,#fff);color:var(--app-muted,#8993a6)}
+.invoice-search:focus-within{border-color:#3477e7;box-shadow:0 0 0 3px rgb(52 119 231 / 9%)}
+.invoice-search input{width:100%;height:42px;border:0;outline:0;background:transparent;color:var(--app-text,#17233b);font:inherit;font-size:11px}
+.invoice-workspace{display:grid;grid-template-columns:minmax(270px,0.78fr) minmax(0,1.7fr);align-items:start;gap:14px}
+.invoice-list-panel,.invoice-detail-panel{min-width:0;overflow:hidden}
+.invoice-list-heading{display:flex;justify-content:space-between;padding:15px 16px;border-bottom:1px solid var(--app-line,#e9edf4)}
+.invoice-list-heading div{display:grid;gap:4px}
+.invoice-list-heading strong{color:var(--app-text,#17233b);font-size:12px}
+.invoice-list-heading span{color:var(--app-muted,#8993a6);font-size:10px}
+.invoice-list{max-height:680px;overflow:auto}
+.invoice-list-item{display:flex;width:100%;align-items:center;gap:10px;padding:13px 12px;border:0;border-bottom:1px solid var(--app-line,#e9edf4);background:transparent;color:var(--app-text,#17233b);text-align:left;cursor:pointer}
+.invoice-list-item:hover,.invoice-list-item.selected{background:var(--app-surface-soft,#f5f7fa)}
+.invoice-list-item.selected{box-shadow:inset 3px 0 #3477e7}
+.invoice-list-item-icon{display:grid;width:31px;height:31px;flex:none;place-items:center;border-radius:7px;background:#edf3ff;color:#3477e7}
+.invoice-list-item-main{display:grid;flex:1;gap:4px;min-width:0}
+.invoice-list-item-main strong{font-size:11px}
+.invoice-list-item-main small{overflow:hidden;color:var(--app-muted,#8993a6);font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+.invoice-list-total{font-size:10px;white-space:nowrap}
+.invoice-detail-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid var(--app-line,#e9edf4)}
+.invoice-type-label{color:#3477e7;font-size:9px;font-weight:750;letter-spacing:.1em}
+.invoice-detail-header h2{margin:6px 0 4px;color:var(--app-text,#17233b);font:700 19px var(--font-display)}
+.invoice-detail-header p{margin:0;color:var(--app-muted,#8993a6);font-size:10px}
+.invoice-status{padding:5px 8px;border-radius:20px;background:#e9f7f0;color:#16875d;font-size:9px;font-weight:650}
+.invoice-detail-content{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(210px,.8fr);gap:18px;padding:18px 20px}
+.invoice-section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.invoice-section-heading div{display:grid;gap:5px}
+.invoice-section-heading strong{color:var(--app-text,#17233b);font-size:11px}
+.invoice-section-heading span{color:var(--app-muted,#8993a6);font-size:9px;line-height:1.5}
+.invoice-items-scroll{overflow-x:auto}
+.invoice-items-table{width:100%;border-collapse:collapse}
+.invoice-items-table th{padding:9px 7px;border-bottom:1px solid var(--app-line,#e9edf4);color:var(--app-muted,#8993a6);font-size:8px;font-weight:650;text-align:left;text-transform:uppercase;white-space:nowrap}
+.invoice-items-table td{padding:11px 7px;border-bottom:1px solid var(--app-line,#e9edf4);color:var(--app-text,#17233b);font-size:10px}
+.invoice-items-table td:first-child{min-width:120px;font-weight:600}
+.invoice-items-table td:not(:first-child){white-space:nowrap}
+.invoice-customer-card{padding:13px;border:1px solid var(--app-line,#e9edf4);border-radius:8px;background:var(--app-surface-soft,#fafbfc)}
+.invoice-customer-details{display:grid;gap:10px;margin:0}
+.invoice-customer-details div{display:grid;gap:4px}
+.invoice-customer-details dt{color:var(--app-muted,#8993a6);font-size:8px}
+.invoice-customer-details dd{overflow-wrap:anywhere;margin:0;color:var(--app-text,#17233b);font-size:10px;font-weight:550}
+.invoice-totals{display:grid;gap:8px;margin-top:15px;padding-top:12px;border-top:1px solid var(--app-line,#e9edf4)}
+.invoice-totals div{display:flex;justify-content:space-between;gap:8px;color:var(--app-muted,#8993a6);font-size:9px}
+.invoice-totals strong{color:var(--app-text,#17233b);font-weight:600}
+.invoice-totals .invoice-grand-total{margin-top:3px;padding-top:10px;border-top:1px solid var(--app-line,#e9edf4);color:var(--app-text,#17233b);font-size:11px;font-weight:700}
+.invoice-totals .invoice-grand-total strong{color:#3477e7;font-size:14px}
+.invoice-disclaimer{margin:0;padding:0 20px 15px;color:var(--app-muted,#8993a6);font-size:9px}
+@media(max-width:950px){.invoice-workspace{grid-template-columns:minmax(230px,.8fr) minmax(0,1.4fr)}.invoice-detail-content{grid-template-columns:1fr}.invoice-customer-card{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}.invoice-customer-card .invoice-section-heading{grid-column:1/-1;margin-bottom:0}.invoice-customer-details{grid-template-columns:1fr 1fr}.invoice-totals{margin-top:0}}
+@media(max-width:700px){.invoice-summary-row{grid-template-columns:1fr 1fr}.invoice-search{grid-column:1/-1;min-height:42px}.invoice-workspace{grid-template-columns:1fr}.invoice-list{max-height:260px}.invoice-detail-content{padding:14px}.invoice-detail-header{padding:15px}.invoice-customer-card{grid-template-columns:1fr}.invoice-customer-card .invoice-section-heading{grid-column:auto}.invoice-customer-details{grid-template-columns:1fr 1fr}}

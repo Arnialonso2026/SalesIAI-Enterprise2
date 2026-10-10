@@ -4,10 +4,10 @@ import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AnalyticsPage from './AnalyticsPage'
 
-const mocks = vi.hoisted(() => ({ get: vi.fn() }))
+const mocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }))
 
 vi.mock('../api', () => ({
-  api: { get: mocks.get },
+  api: { get: mocks.get, post: mocks.post },
   errorMessage: (error: unknown) => error instanceof Error ? error.message : 'Error',
 }))
 
@@ -59,6 +59,27 @@ describe('AnalyticsPage', () => {
     mocks.get.mockReset().mockImplementation((path: string) => Promise.resolve({
       data: path === '/analytics/dashboard' ? dashboard : [],
     }))
+    mocks.post.mockReset().mockResolvedValue({
+      data: {
+        id: 1,
+        dataset_id: 1,
+        name: 'Relación entre variables',
+        variable_x: 'X',
+        variable_y: 'Y',
+        results: {
+          count: 3,
+          covariance_population: 1.3333,
+          pearson_correlation: 1,
+          linear_regression_slope: 2,
+          linear_regression_intercept: 0,
+          vector_dot_product: 28,
+          vector_sum: [3, 6, 9],
+          vector_difference: [-1, -2, -3],
+          vector_x_norm: 3.7417,
+          vector_y_norm: 7.4833,
+        },
+      },
+    })
   })
 
   it('muestra Variación y desviación después de Estadística y Bayes', async () => {
@@ -92,5 +113,22 @@ describe('AnalyticsPage', () => {
     expect(screen.getByText('Evidencia observada.')).toBeInTheDocument()
     expect(screen.getByText('Probabilidad previa de H, antes de observar E.')).toBeInTheDocument()
     expect(screen.getByText('Probabilidad posterior de H después de observar E.')).toBeInTheDocument()
+  })
+
+  it('calcula y presenta correlación y operaciones vectoriales para dos variables', async () => {
+    const user = userEvent.setup()
+    render(<AnalyticsPage />)
+    await user.click(await screen.findByRole('tab', { name: 'Estadística y Bayes' }))
+    await user.click(screen.getByRole('button', { name: 'Calcular correlación y vectores' }))
+
+    expect(mocks.post).toHaveBeenCalledWith('/analytics/statistics/linear', {
+      name: 'Relación entre ventas e ingresos',
+      variable_x: 'Cantidad de ventas',
+      values_x: [1, 2, 3, 4, 5],
+      variable_y: 'Ingresos',
+      values_y: [100, 200, 250, 400, 500],
+    })
+    expect(await screen.findByText('Correlación de Pearson')).toBeInTheDocument()
+    expect(screen.getByText('[3.00, 6.00, 9.00]')).toBeInTheDocument()
   })
 })

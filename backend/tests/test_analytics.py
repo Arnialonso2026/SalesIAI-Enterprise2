@@ -10,7 +10,7 @@ from sqlalchemy import inspect
 
 from app.database import Base, engine
 from app.main import app
-from app.services.analytics import calculate_statistics
+from app.services.analytics import calculate_bivariate_statistics, calculate_statistics
 
 
 def test_postgres_sql_scripts_cover_every_model_table() -> None:
@@ -21,7 +21,7 @@ def test_postgres_sql_scripts_cover_every_model_table() -> None:
     )
     declared_tables = set(re.findall(r"CREATE TABLE (\w+)", sql))
 
-    assert len(declared_tables) == 24
+    assert len(declared_tables) == 29
     assert declared_tables == set(Base.metadata.tables)
 
 
@@ -33,6 +33,26 @@ def test_calculate_statistics_returns_descriptive_metrics_and_probability() -> N
     assert result["median"] == 3
     assert result["mode"] == [3]
     assert result["probability_at_or_above_threshold"] == 0.75
+
+
+def test_calculate_bivariate_statistics_returns_correlation_and_vector_operations() -> None:
+    result = calculate_bivariate_statistics([1, 2, 3], [2, 4, 6])
+
+    assert result["count"] == 3
+    assert result["pearson_correlation"] == 1
+    assert result["covariance_population"] == 4 / 3
+    assert result["linear_regression_slope"] == 2
+    assert result["linear_regression_intercept"] == 0
+    assert result["vector_dot_product"] == 28
+    assert result["vector_sum"] == [3, 6, 9]
+    assert result["vector_difference"] == [-1, -2, -3]
+
+
+def test_calculate_bivariate_statistics_marks_correlation_undefined_for_constant_series() -> None:
+    result = calculate_bivariate_statistics([2, 2], [1, 3])
+
+    assert result["pearson_correlation"] is None
+    assert result["linear_regression_slope"] is None
 
 
 def test_analytics_migration_upgrades_existing_version_3_schema() -> None:
@@ -92,6 +112,26 @@ def test_analytics_api_persists_analyses_insights_and_reports() -> None:
         assert statistics.json()["results"]["median"] == 3
         assert statistics.json()["results"]["probability_at_or_above_threshold"] == 0.75
 
+        linear_analysis = client.post("/api/v1/analytics/statistics/linear", headers=headers, json={
+            "name": "Ventas e ingresos",
+            "variable_x": "Cantidad",
+            "values_x": [1, 2, 3],
+            "variable_y": "Importe",
+            "values_y": [2, 4, 6],
+        })
+        assert linear_analysis.status_code == 201, linear_analysis.text
+        assert linear_analysis.json()["results"]["pearson_correlation"] == 1
+        assert linear_analysis.json()["results"]["vector_dot_product"] == 28
+
+        mismatched_linear = client.post("/api/v1/analytics/statistics/linear", headers=headers, json={
+            "name": "Series incompatibles",
+            "variable_x": "X",
+            "values_x": [1, 2],
+            "variable_y": "Y",
+            "values_y": [1, 2, 3],
+        })
+        assert mismatched_linear.status_code == 422
+
         bayes = client.post("/api/v1/analytics/bayes", headers=headers, json={
             "name": "Conversión",
             "question": "La campaña genera compra",
@@ -119,6 +159,7 @@ def test_analytics_api_persists_analyses_insights_and_reports() -> None:
         assert report.headers["content-type"].startswith("text/csv")
         assert "Ingresos" in report.text
         assert "Ventas de prueba" in report.text
+        assert "Ventas e ingresos" in report.text
         assert "Conversión" in report.text
         reports = client.get("/api/v1/analytics/reports", headers=headers)
         assert reports.status_code == 200, reports.text
@@ -126,7 +167,7 @@ def test_analytics_api_persists_analyses_insights_and_reports() -> None:
 
         history = client.get("/api/v1/analytics/statistics", headers=headers)
         assert history.status_code == 200, history.text
-        assert history.json()[0]["name"] == "Ventas de prueba"
+        assert {item["name"] for item in history.json()} == {"Ventas de prueba", "Ventas e ingresos"}
 
     Base.metadata.drop_all(bind=engine)
     with engine.begin() as connection:

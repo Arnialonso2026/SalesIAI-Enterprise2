@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models import AuditLog
+from app.models import AuditLog, User
 
 
 def record_audit_event(
@@ -19,9 +19,11 @@ def record_audit_event(
     ip_address: str | None = None,
     user_agent: str | None = None,
 ) -> AuditLog:
+    actor = db.get(User, user_id) if user_id is not None else None
     event = AuditLog(
         company_id=company_id,
         user_id=user_id,
+        actor_name=actor.full_name if actor else None,
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,

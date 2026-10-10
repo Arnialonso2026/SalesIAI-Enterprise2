@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { BarChart3, Box, CircleDollarSign, ClipboardList, FileText, LayoutDashboard, LogOut, Moon, PackageSearch, Settings, ShieldCheck, Sun, Tags, UserRoundCog, Users } from 'lucide-react'
+import { BarChart3, Box, CircleDollarSign, ClipboardList, FileText, LayoutDashboard, LogOut, MapPinned, Moon, PackageSearch, Settings, ShieldCheck, ShoppingBag, Sun, Tags, UserRoundCog, Users } from 'lucide-react'
 import { useAuth } from '../App'
 import './navigation.css'
 
@@ -18,22 +18,27 @@ type NavigationGroup = {
 }
 
 const navigation: NavigationGroup[] = [
-  { label: 'Ejecutivo', items: [
+  { label: 'Principal', items: [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   ] },
-  { label: 'Operaciones', items: [
-    { label: 'Ventas', path: '/ventas', icon: CircleDollarSign },
-    { label: 'Inventario y Stock', path: '/inventario', icon: PackageSearch },
+  { label: 'Ventas', items: [
+    { label: 'Órdenes de venta', path: '/ventas/nueva', icon: ShoppingBag, allowedRoles: ['admin', 'seller'] },
+    { label: 'Comprobantes de pago', path: '/comprobantes-pago', icon: FileText },
+    { label: 'Cuentas por cobrar', path: '/cuentas-cobrar', icon: CircleDollarSign, allowedRoles: ['admin', 'seller', 'manager'] },
   ] },
-  { label: 'Analítica e IA', items: [
-    { label: 'Analítica', path: '/analitica', icon: BarChart3, allowedRoles: ['admin', 'manager', 'analyst'] },
+  { label: 'Inventarios', items: [
+    { label: 'Stock y Kardex', path: '/inventario', icon: PackageSearch },
   ] },
-  { label: 'Mantenimiento', items: [
+  { label: 'Mantenimientos', items: [
     { label: 'Clientes', path: '/clientes', icon: Users },
     { label: 'Productos', path: '/productos', icon: Box },
     { label: 'Categorías', path: '/categorias', icon: Tags, allowedRoles: ['admin', 'warehouse'] },
   ] },
+  { label: 'Reportes y analítica', items: [
+    { label: 'Analítica', path: '/analitica', icon: BarChart3, allowedRoles: ['admin', 'manager', 'analyst'] },
+  ] },
   { label: 'Administración', items: [
+    { label: 'Sucursales', path: '/sucursales', icon: MapPinned, adminOnly: true },
     { label: 'Auditoría', path: '/usuarios/auditoria', icon: ShieldCheck, adminOnly: true },
     { label: 'Usuarios', path: '/usuarios', icon: UserRoundCog, adminOnly: true },
     { label: 'Documentación', path: '/usuarios/documentacion', icon: FileText, adminOnly: true },
@@ -41,7 +46,7 @@ const navigation: NavigationGroup[] = [
 ]
 
 const titles: Record<string, string> = {
-  '/dashboard': 'Dashboard', '/ventas': 'Ventas', '/ventas/nueva': 'Nueva venta', '/categorias': 'Categorías', '/analitica': 'Analítica',
+  '/dashboard': 'Dashboard', '/ventas': 'Ventas', '/ventas/nueva': 'Orden de venta', '/comprobantes-pago': 'Comprobantes de pago', '/cuentas-cobrar': 'Cuentas por cobrar', '/categorias': 'Categorías', '/sucursales': 'Sucursales', '/analitica': 'Analítica',
   '/clientes': 'Clientes', '/productos': 'Productos', '/inventario': 'Inventario', '/usuarios': 'Usuarios',
   '/usuarios/auditoria': 'Auditoría', '/usuarios/documentacion': 'Documentación', '/ajustes': 'Ajustes',
 }

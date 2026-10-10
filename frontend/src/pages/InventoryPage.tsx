@@ -10,7 +10,8 @@ import { currency, dateTime, formatCustomerDocument } from '../utils'
 import { useRealtimeRefresh } from '../useRealtimeRefresh'
 import './inventory.css'
 
-const movementLabel: Record<string, string> = { sale: 'Venta', entry: 'Ingreso', adjustment: 'Ajuste', initial: 'Stock inicial' }
+const movementLabel: Record<string, string> = { sale: 'Venta', purchase: 'Compra', entry: 'Ingreso', adjustment: 'Ajuste', initial: 'Stock inicial' }
+const MOVEMENT_PAGE_SIZE = 100
 
 type InventorySection = 'sales' | 'products' | 'stock' | 'movements'
 type StockTrackingStatus = 'out' | 'critical' | 'tracking' | 'healthy'
@@ -47,6 +48,8 @@ export default function InventoryPage() {
   const [movementSearch, setMovementSearch] = useState('')
   const [movementTypeFilter, setMovementTypeFilter] = useState('all')
   const [movementProductFilter, setMovementProductFilter] = useState('all')
+  const [hasMoreMovements, setHasMoreMovements] = useState(false)
+  const [loadingMoreMovements, setLoadingMoreMovements] = useState(false)
   const [salesLoading, setSalesLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -58,9 +61,27 @@ export default function InventoryPage() {
   async function load() {
     setLoading(true)
     try {
-      const [productResponse, movementResponse] = await Promise.all([api.get<Product[]>('/products'), api.get<InventoryMovement[]>('/inventory/movements')])
-      setProducts(productResponse.data); setMovements(movementResponse.data); setError('')
+      const [productResponse, movementResponse] = await Promise.all([
+        api.get<Product[]>('/products'),
+        api.get<InventoryMovement[]>('/inventory/movements', { params: { limit: MOVEMENT_PAGE_SIZE, offset: 0 } }),
+      ])
+      setProducts(productResponse.data)
+      setMovements(movementResponse.data)
+      setHasMoreMovements(movementResponse.data.length === MOVEMENT_PAGE_SIZE)
+      setError('')
     } catch (cause) { setError(errorMessage(cause)) } finally { setLoading(false) }
+  }
+  async function loadMoreMovements() {
+    if (loadingMoreMovements || !hasMoreMovements) return
+    setLoadingMoreMovements(true)
+    try {
+      const { data } = await api.get<InventoryMovement[]>('/inventory/movements', {
+        params: { limit: MOVEMENT_PAGE_SIZE, offset: movements.length },
+      })
+      setMovements((current) => [...current, ...data])
+      setHasMoreMovements(data.length === MOVEMENT_PAGE_SIZE)
+      setError('')
+    } catch (cause) { setError(errorMessage(cause)) } finally { setLoadingMoreMovements(false) }
   }
   async function loadSales(search = salesSearch) {
     setSalesLoading(true)
@@ -138,7 +159,7 @@ export default function InventoryPage() {
           <div className="inventory-stock-track" role="meter" aria-label={`Nivel de stock de ${product.name}`} aria-valuemin={0} aria-valuemax={reference} aria-valuenow={Math.min(product.stock, reference)}><span className={`inventory-stock-fill tracking-${stockStatus}`} style={{ width: `${fillPercent}%` }} /><i className="inventory-stock-minimum" style={{ left: `${minimumPercent}%` }} /></div>
           <div className="inventory-stock-card-footer"><span>{followUpText[stockStatus]}</span>{canAdjustInventory && <button className="button button-small button-secondary" type="button" aria-label={`Ajustar stock de ${product.name}`} onClick={() => { setSelected(product); setQuantity(''); setNote('') }}><Plus size={13} /> Ajustar</button>}</div>
         </article>
-      })}</div><aside className="inventory-tracking-side"><section className="inventory-tracking-summary"><div className="inventory-tracking-heading"><span className="eyebrow">ESTADO DEL CATÁLOGO</span><h3>Seguimiento</h3></div><div className="inventory-status-grid">{(['out', 'critical', 'tracking', 'healthy'] as StockTrackingStatus[]).map((status) => <div className={`inventory-status-count tracking-${status}`} key={status}><i /><span>{stockStatusLabels[status]}</span><strong>{stockCounts[status]}</strong></div>)}</div></section><section className="inventory-tracking-activity"><div className="inventory-tracking-heading"><span className="eyebrow">TRAZABILIDAD</span><h3>Actividad reciente</h3><p>{movements.length} movimientos registrados</p></div>{movements.slice(0, 8).length ? movements.slice(0, 8).map((movement) => {
+      })}</div><aside className="inventory-tracking-side"><section className="inventory-tracking-summary"><div className="inventory-tracking-heading"><span className="eyebrow">ESTADO DEL CATÁLOGO</span><h3>Seguimiento</h3></div><div className="inventory-status-grid">{(['out', 'critical', 'tracking', 'healthy'] as StockTrackingStatus[]).map((status) => <div className={`inventory-status-count tracking-${status}`} key={status}><i /><span>{stockStatusLabels[status]}</span><strong>{stockCounts[status]}</strong></div>)}</div></section><section className="inventory-tracking-activity"><div className="inventory-tracking-heading"><span className="eyebrow">TRAZABILIDAD</span><h3>Actividad reciente</h3><p>{movements.length} movimientos cargados</p></div>{movements.slice(0, 8).length ? movements.slice(0, 8).map((movement) => {
         const product = products.find((item) => item.id === movement.product_id)
         const outgoing = movement.quantity < 0
         return <div className="inventory-mini-movement" key={movement.id}><span className={`movement-symbol ${outgoing ? 'movement-out' : 'movement-in'}`}>{outgoing ? <ArrowUpRight size={14} /> : <ArrowDownLeft size={14} />}</span><div><strong>{product?.name || `Producto #${movement.product_id}`}</strong><small>{movementLabel[movement.movement_type] || movement.movement_type} · {dateTime(movement.created_at)}</small></div><b className={outgoing ? 'negative-quantity' : 'positive-quantity'}>{movement.quantity > 0 ? '+' : ''}{movement.quantity}</b></div>
@@ -151,7 +172,7 @@ export default function InventoryPage() {
       const product = products.find((item) => item.id === movement.product_id)
       const isOutgoing = movement.quantity < 0
       return <div className="movement-row" key={movement.id}><span className={`movement-symbol ${isOutgoing ? 'movement-out' : 'movement-in'}`}>{isOutgoing ? <ArrowUpRight size={16} /> : <ArrowDownLeft size={16} />}</span><div className="movement-description"><strong>{product?.name || `Producto #${movement.product_id}`}</strong><small>{movement.note || movementLabel[movement.movement_type] || movement.movement_type} · {dateTime(movement.created_at)}</small></div><div className="movement-change"><strong className={isOutgoing ? 'negative-quantity' : 'positive-quantity'}>{movement.quantity > 0 ? '+' : ''}{movement.quantity} u.</strong><small>Saldo: {movement.stock_after}</small></div></div>
-    })}</div> : <div className="movement-empty">{movements.length ? 'No hay movimientos que coincidan con esos filtros.' : 'Todavía no se registraron movimientos.'}</div>}</section>}
+    })}</div> : <div className="movement-empty">{movements.length ? 'No hay movimientos que coincidan con esos filtros.' : 'Todavía no se registraron movimientos.'}</div>}{hasMoreMovements && <div className="movement-pagination"><span>Se muestran los movimientos cargados hasta ahora.</span><button className="button button-secondary button-small" type="button" disabled={loadingMoreMovements} onClick={() => void loadMoreMovements()}>{loadingMoreMovements ? 'Cargando…' : 'Cargar movimientos anteriores'}</button></div>}</section>}
     {selected && <Modal title="Ajustar existencias" description={`Actualiza el stock de ${selected.name}. Los cambios se registran en la trazabilidad.`} onClose={() => setSelected(null)} onSubmit={adjust} submitLabel={saving ? 'Registrando…' : 'Registrar movimiento'}><div className="adjust-current-stock"><span>Stock actual</span><strong>{selected.stock} unidades</strong></div><div className="form-grid"><label className="form-field span-2">Variación de stock<input autoFocus type="number" step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} required placeholder="Ej. 10 para ingreso, -2 para corrección" /><small>Usa un número positivo para ingresar o negativo para descontar existencias.</small></label><label className="form-field span-2">Motivo del movimiento<input value={note} onChange={(event) => setNote(event.target.value)} minLength={2} required placeholder="Ej. Reposición de proveedor" /></label></div></Modal>}
   </>
 }

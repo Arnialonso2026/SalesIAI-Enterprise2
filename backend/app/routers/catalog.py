@@ -69,7 +69,7 @@ def customer_sales(customer_id: int, db: Session = Depends(get_db), user: User =
         raise HTTPException(status_code=404, detail="No se encontró el cliente.")
     query = select(Sale).options(
         joinedload(Sale.customer), joinedload(Sale.created_by),
-        selectinload(Sale.items), selectinload(Sale.payments)
+        selectinload(Sale.items), selectinload(Sale.payments), selectinload(Sale.document)
     ).where(Sale.customer_id == customer_id, Sale.company_id == user.company_id)
     return list(db.scalars(query.order_by(Sale.created_at.desc()).limit(100)).unique().all())
 
@@ -211,10 +211,16 @@ def deactivate_product(product_id: int, db: Session = Depends(get_db), user: Use
 
 
 @router.get("/inventory/movements", response_model=list[InventoryMovementOut])
-def list_inventory_movements(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> list[InventoryMovement]:
+def list_inventory_movements(
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db), user: User = Depends(get_current_user),
+) -> list[InventoryMovement]:
     return list(db.scalars(select(InventoryMovement).where(
         InventoryMovement.company_id == user.company_id
-    ).order_by(InventoryMovement.created_at.desc()).limit(100)).all())
+    ).order_by(
+        InventoryMovement.created_at.desc(), InventoryMovement.id.desc()
+    ).offset(offset).limit(limit)).all())
 
 
 @router.post("/inventory/products/{product_id}/adjust", response_model=InventoryMovementOut)

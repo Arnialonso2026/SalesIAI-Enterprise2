@@ -9,10 +9,22 @@ export interface User {
   password_configured: boolean
 }
 
+export interface Branch {
+  id: number
+  company_id: number
+  name: string
+  address: string | null
+  latitude: number
+  longitude: number
+  is_active: boolean
+  created_at: string
+}
+
 export interface AuditLog {
   id: number
   company_id: number
   user_id: number | null
+  actor_name: string | null
   action: string
   entity_type: string
   entity_id: number | null
@@ -20,6 +32,13 @@ export interface AuditLog {
   ip_address: string | null
   user_agent: string | null
   created_at: string
+}
+
+export interface AuditLogPage {
+  items: AuditLog[]
+  total: number
+  limit: number
+  offset: number
 }
 
 export interface LocationData {
@@ -100,6 +119,30 @@ export interface Product {
   category: Category | null
 }
 
+export interface PurchaseItem {
+  id: number
+  product_id: number
+  product_name: string
+  product_sku: string
+  quantity: number
+  unit_cost: number
+  line_total: number
+}
+
+export interface Purchase {
+  id: number
+  purchase_number: string
+  supplier_name: string
+  supplier_document_number: string | null
+  supplier_address: string | null
+  created_by_id: number | null
+  created_by_name: string
+  total: number
+  notes: string | null
+  created_at: string
+  items: PurchaseItem[]
+}
+
 export interface SaleItem {
   id: number
   product_id: number
@@ -115,6 +158,38 @@ export interface Payment {
   method: string
   status: string
   paid_at: string
+}
+
+export interface SalesDocumentItem {
+  id: number
+  product_name: string
+  quantity: number
+  unit_price: number
+  line_total: number
+}
+
+export interface SalesDocument {
+  id: number
+  sale_id: number
+  document_type: 'boleta' | 'factura'
+  document_number: string
+  customer_name: string
+  customer_document: string | null
+  customer_address: string | null
+  customer_email: string | null
+  customer_phone: string | null
+  currency: string
+  subtotal: number
+  discount: number
+  tax: number
+  total: number
+  issued_at: string
+  items: SalesDocumentItem[]
+}
+
+export interface PaymentReceipt extends SalesDocument {
+  sale_number: string
+  sale_created_at: string
 }
 
 export interface SaleCreator {
@@ -139,11 +214,20 @@ export interface Sale {
   created_at: string
   items: SaleItem[]
   payments: Payment[]
+  document: SalesDocument | null
+}
+
+export interface Receivable {
+  sale: Sale
+  paid_amount: number
+  balance: number
 }
 
 export interface DashboardSummary {
   total_revenue: number
   month_revenue: number
+  previous_period_revenue: number
+  month_revenue_change_percent: number | null
   today_sales: number
   sales_count: number
   customers_count: number
@@ -156,6 +240,7 @@ export interface InventoryMovement {
   id: number
   product_id: number
   sale_id: number | null
+  purchase_id: number | null
   movement_type: string
   quantity: number
   stock_after: number
@@ -192,6 +277,26 @@ export interface StatisticalCalculation {
   dataset_id: number
   name: string
   results: Record<string, number | number[] | null>
+}
+
+export interface LinearAnalysisCalculation {
+  id: number
+  dataset_id: number
+  name: string
+  variable_x: string
+  variable_y: string
+  results: {
+    count: number
+    covariance_population: number
+    pearson_correlation: number | null
+    linear_regression_slope: number | null
+    linear_regression_intercept: number | null
+    vector_dot_product: number
+    vector_sum: number[]
+    vector_difference: number[]
+    vector_x_norm: number
+    vector_y_norm: number
+  }
 }
 
 export interface BayesianAnalysis {

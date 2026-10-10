@@ -18,7 +18,7 @@ Construir una plataforma empresarial donde las operaciones comerciales generan d
 | 10 | Dashboard Analytics | KPIs, gráficos, filtros y evolución | Completada |
 | 11 | Insights empresariales | Reglas explicables y evidencia numérica | Completada |
 | 12 | Reportes | Reportes comerciales/estadísticos y exportación | Completada |
-| 13 | Seguridad y auditoría | Roles granulares, permisos y auditoría avanzada | Parcial: roles y permisos implementados; auditoría avanzada pendiente |
+| 13 | Seguridad y auditoría | Roles granulares, permisos y auditoría avanzada | Parcial: roles y permisos implementados; auditoría con filtros, paginación, actor histórico y trazabilidad de operaciones comerciales implementada; validar y completar evidencia |
 | 14 | Pruebas y calidad | Pruebas de integración, API, UI y aceptación | Completada |
 | 15 | Despliegue | Ambientes, HTTPS, monitoreo y publicación | En curso: configuración preparada; publicación y verificación pendientes |
 | 16 | Cierre y documentación | Manuales, evidencias y mantenimiento | Pendiente |
@@ -30,3 +30,5 @@ El producto implementado en las fases 1–12 permite mantener la operación come
 ## Estado de entrega
 
 La estructura fuente, contratos y entregables se describen en los documentos de cada fase dentro de `docs/`. La ejecución local requiere Docker Compose o una instancia PostgreSQL compatible. Las credenciales de demostración se indican en el README y deben cambiarse antes de cualquier despliegue real.
+
+El módulo de sucursales mantiene un catálogo independiente con mapa geográfico; las ventas y existencias no se asignan a sedes ni se separan por sucursal.

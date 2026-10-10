@@ -5,6 +5,7 @@
 - Alta y consulta de clientes activos.
 - Edición y desactivación lógica sin perder ventas históricas.
 - Campos: nombre/razón social, correo, teléfono, documento y dirección.
+- El documento es opcional; cuando se registra, se normaliza a dígitos y se valida como DNI de 8 dígitos para personas o RUC de 11 dígitos para empresas.
 - Búsqueda parcial por nombre, correo o teléfono.
 - Consulta del historial de ventas relacionado al cliente.
 - Cada cliente pertenece a la organización; la venta puede vincular cliente o ser de mostrador.

@@ -8,7 +8,7 @@
 - **Fase 04:** modelo PostgreSQL, migración Alembic y datos demo.
 - **Fases 05–06:** API FastAPI con JWT y aplicación React + TypeScript.
 - **Fase 07:** clientes, categorías y productos con búsqueda.
-- **Fase 08:** punto de venta, cálculo de descuento e IGV, registro de pago e historial trazable de inventario.
+- **Fase 08:** punto de venta, cálculo de descuento e IGV, pagos completos o parciales, cuentas por cobrar e historial trazable de inventario.
 - **Fases 09–12:** analítica, dashboard, insights y exportación de reportes.
 - **Fase 13:** roles, permisos y auditoría de accesos y usuarios; cobertura de auditoría aún parcial.
 - **Fase 14:** pruebas backend/frontend y validación de build.
@@ -72,6 +72,8 @@ Plan_Desarrollo_SalesIA_Enterprise.pdf
 ## Configuración y reglas operativas
 
 Las variables principales están en `backend/.env.example`: `DATABASE_URL`, `SECRET_KEY`, `SUPABASE_URL`, `SUPABASE_JWKS_URL`, `CORS_ORIGINS`, `COMPANY_NAME` y `TAX_RATE` (0.18 por defecto). La venta obtiene los precios desde el servidor, valida el stock, aplica el descuento antes del IGV y registra venta, pago y salidas de inventario en una misma transacción.
+
+No se incluye un módulo de compras ni de proveedores. Las tablas de compras que puedan existir en bases de datos anteriores se conservan únicamente para no borrar información histórica y no se exponen en la aplicación ni en la API. Al confirmar una venta se puede generar una boleta o factura interna con una copia de los datos editados del cliente; estos cambios no actualizan el catálogo. Las facturas internas requieren empresa con RUC de 11 dígitos. Estos documentos son registros de gestión: **no son comprobantes tributarios ni se emiten o validan ante SUNAT**.
 
 El usuario y los datos semilla son únicamente para demostración. **No desplegar con las claves de ejemplo**; configurar secreto aleatorio, credenciales y controles productivos antes de publicar.
 

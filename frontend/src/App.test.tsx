@@ -7,6 +7,7 @@ import App from './App'
 vi.mock('./pages/DashboardPage', () => ({
   default: () => <h1>Panel de ventas</h1>,
 }))
+vi.mock('./pages/PaymentReceiptsPage', () => ({ default: () => <h1>Comprobantes de pago</h1> }))
 vi.mock('./pages/AuditPage', () => ({ default: () => <h1>Auditoría</h1> }))
 vi.mock('./pages/DocumentationPage', () => ({ default: () => <h1>Documentación</h1> }))
 vi.mock('./pages/SettingsPage', () => ({ default: () => <h1>Ajustes</h1> }))
@@ -68,6 +69,7 @@ describe('App access control', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: /tu operación/i })).toBeInTheDocument()
     expect(screen.queryByText('Gestión de usuarios')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Sucursales' })).not.toBeInTheDocument()
   })
 
   it('muestra auditoría y documentación como opciones independientes', async () => {
@@ -91,21 +93,34 @@ describe('App access control', () => {
     const usersLink = await screen.findByRole('link', { name: 'Usuarios' })
     const auditLink = screen.getByRole('link', { name: 'Auditoría' })
     const documentationLink = screen.getByRole('link', { name: 'Documentación' })
+    const branchesLink = screen.getByRole('link', { name: 'Sucursales' })
     expect(usersLink).toHaveClass('active')
     expect(auditLink).toBeInTheDocument()
     expect(documentationLink).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Ejecutivo' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Operaciones' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Analítica e IA' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Mantenimiento' })).toBeInTheDocument()
+    expect(branchesLink).toHaveAttribute('href', '/sucursales')
+    expect(screen.getByRole('heading', { name: 'Ventas' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Inventarios' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Reportes y analítica' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Mantenimientos' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Administración' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/dashboard')
-    expect(screen.getByRole('link', { name: 'Inventario y Stock' })).toHaveAttribute('href', '/inventario')
+    expect(screen.getByRole('heading', { name: 'Principal' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Compras' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Órdenes de venta' })).toHaveAttribute('href', '/ventas/nueva')
+    expect(screen.getByRole('link', { name: 'Comprobantes de pago' })).toHaveAttribute('href', '/comprobantes-pago')
+    expect(screen.getByRole('link', { name: 'Cuentas por cobrar' })).toHaveAttribute('href', '/cuentas-cobrar')
+    expect(screen.queryByRole('link', { name: 'Proveedores' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Dashboard' }).closest('.nav-section')).toBe(
+      screen.getByRole('navigation').querySelector('.nav-section'),
+    )
+    expect(screen.queryByRole('heading', { name: 'Compras' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Stock y Kardex' })).toHaveAttribute('href', '/inventario')
     expect(screen.getByRole('link', { name: 'Analítica' })).toHaveAttribute('href', '/analitica')
     expect(screen.queryByRole('link', { name: 'Variación y dirección' })).not.toBeInTheDocument()
     expect(auditLink.closest('.nav-section-links')).toBe(usersLink.closest('.nav-section-links'))
     expect(documentationLink.closest('.nav-section-links')).toBe(usersLink.closest('.nav-section-links'))
-    expect(screen.getByRole('link', { name: 'Clientes' }).closest('.nav-section-links')).toBe(screen.getByRole('link', { name: 'Categorías' }).closest('.nav-section-links'))
+    expect(screen.getByRole('link', { name: 'Clientes' }).closest('.nav-section-links')).toBe(
+      screen.getByRole('link', { name: 'Categorías' }).closest('.nav-section-links'),
+    )
     expect(screen.queryByRole('navigation', { name: 'Submenu de Usuarios' })).not.toBeInTheDocument()
   })
 

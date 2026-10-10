@@ -19,6 +19,7 @@ def test_auth_api_contract_rejects_invalid_access_and_returns_current_user() -> 
         assert client.get("/health").json() == {"status": "ok", "service": "salesia-api"}
         assert client.get("/api/v1/auth/me").status_code == 401
         assert client.get("/api/v1/sales").status_code == 401
+        assert client.get("/api/v1/purchases").status_code == 404
 
         invalid_login = client.post("/api/v1/auth/login", json={
             "dni": os.environ["ADMIN_DNI"], "password": "incorrecta",
@@ -64,6 +65,34 @@ def test_auth_api_contract_rejects_invalid_access_and_returns_current_user() -> 
             "is_active": True,
             "created_at": created_customer.json()["created_at"],
         }
+
+        optional_document = client.post("/api/v1/customers", headers=headers, json={
+            "name": "Cliente sin documento",
+            "customer_type": "individual",
+        })
+        assert optional_document.status_code == 201, optional_document.text
+        assert optional_document.json()["document_number"] is None
+
+        formatted_dni = client.post("/api/v1/customers", headers=headers, json={
+            "name": "Cliente con DNI formateado",
+            "customer_type": "individual",
+            "document_number": "DNI-12345678",
+        })
+        assert formatted_dni.status_code == 201, formatted_dni.text
+        assert formatted_dni.json()["document_number"] == "12345678"
+
+        invalid_documents = [
+            {"customer_type": "individual", "document_number": "1234567"},
+            {"customer_type": "business", "document_number": "1234567890"},
+            {"customer_type": "business", "document_number": "DNI-12345678"},
+            {"customer_type": "individual", "document_number": "12ABC678"},
+        ]
+        for invalid_document in invalid_documents:
+            invalid_customer = client.post("/api/v1/customers", headers=headers, json={
+                "name": "Documento inválido",
+                **invalid_document,
+            })
+            assert invalid_customer.status_code == 422, invalid_customer.text
 
         customer_payload["industry"] = "Tecnología"
         updated_customer = client.put(
